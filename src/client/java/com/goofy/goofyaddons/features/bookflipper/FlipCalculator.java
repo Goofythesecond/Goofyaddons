@@ -70,7 +70,8 @@ public class FlipCalculator {
         ));
     }
 
-    
+
+
 
 
     private void processData() {
