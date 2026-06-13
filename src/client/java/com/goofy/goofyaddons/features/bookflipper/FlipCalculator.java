@@ -70,6 +70,9 @@ public class FlipCalculator {
         ));
     }
 
+    
+
+
     private void processData() {
 
         for (Book book : books) {
