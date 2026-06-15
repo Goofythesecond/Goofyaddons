@@ -8,10 +8,10 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 
 public class ScoreboardUtils {
+    private static final Minecraft minecraft = Minecraft.getInstance();
 
     public double getPurse() {
         Double purse = (double) -1;
-        Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) return -1;
         if (minecraft.level == null) return -1;
 

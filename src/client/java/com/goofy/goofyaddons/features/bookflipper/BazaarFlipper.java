@@ -21,8 +21,7 @@ public class BazaarFlipper {
         BAZAAR_NAVIGATION,
         PLACE_ORDER
     }
-
-    private Scheduler scheduler = new Scheduler();
+    private Clock clock = new Clock();
     private State state = State.IDLE;
     private State lastState = null;
     private List<FlipItem> flipItemsList = new ArrayList<>();
@@ -32,12 +31,10 @@ public class BazaarFlipper {
     InventoryScanner inventoryScanner = new InventoryScanner();
     Minecraft minecraft = Minecraft.getInstance();
     private Book currentBook = null;
-    private Map<Book, ItemMonitor> itemOrder = new HashMap<>();
 
 
     public void onTick() {
         lastStateCheck();
-        scheduler.tick();
 
         switch (state) {
             case START -> {
@@ -46,7 +43,10 @@ public class BazaarFlipper {
 
             case FETCHING -> {
                 if (!flipItemsList.isEmpty()) processData();
-                scheduler.every(20, 10, () -> flipItemsList = flipCalculator.getFlipItemsList());
+
+                clock.start(5000);
+                if (clock.shouldFire() & flipItemsList.isEmpty()) flipItemsList = flipCalculator.getFlipItemsList();
+
                 FlipItem currentFlip = queue.poll();
                 if (currentFlip != null) {
                     currentBook = currentFlip.book();
@@ -54,32 +54,28 @@ public class BazaarFlipper {
             }
 
             case BAZAAR_NAVIGATION -> {
-                if (!queue.isEmpty()) {
-                    queue.poll();
+                if (!containerCheck("Bazaar")) clock.start(250);
+                if (!containerCheck("Bazaar") & clock.shouldFire()) openBazaar(currentBook.name());
+
+                if (containerCheck("Bazaar")) clock.start(500);
+                if (containerCheck("Bazaar") & clock.shouldFire()) {
+                    int slot = inventoryScanner.findContainer(currentBook.getRomanLevel(currentBook.level())).getFirst();
+                    InventoryUtils.clickSlot(slot, false);
                 }
-                if (minecraft.screen.getTitle().toString().contains("bazaar")) openBazaar(currentBook.name());
-                    scheduler.at(20, () -> {
-                        int slot = inventoryScanner.findContainer(currentBook.getRomanLevel(currentBook.level())).getFirst();
-                        InventoryUtils.clickSlot(slot, false);
-                    });
 
-                    scheduler.at((scheduler.getTicks() + 40), () -> InventoryUtils.clickSlot(15, false));
+                if (containerCheck(currentBook.name())) clock.start(500);
+                if (containerCheck(currentBook.name()) & clock.shouldFire()) InventoryUtils.clickSlot(15, false);
 
-                    scheduler.at((scheduler.getTicks() + 60), () -> InventoryUtils.clickSlot(16, false));
+                if (containerCheck("How many do you want")) clock.start(500);
+                if (containerCheck("How many do you want") & clock.shouldFire()) {
+                    InventoryUtils.clickSlot(16, false);
+                }
 
+                if (minecraft.screen instanceof SignEditScreen) {
+                    handleSign();
+                };
 
-                scheduler.every((scheduler.getTicks() + 80), 5, () -> {
-                    if (minecraft.screen instanceof SignEditScreen) {
-                        handleSign();
-                    }
-                });
-                scheduler.every(90, 5, () -> {
-                    if (minecraft.screen instanceof SignEditScreen) return;
-                    List<Integer> fixup = inventoryScanner.findLoreContainer("Click to fixup!");
-                    if (!fixup.isEmpty()) {
-                        InventoryUtils.clickSlot(fixup.get(0), false);
-                    } else if (minecraft.screen.getTitle().toString().contains("How much do you want to pay")) state = State.PLACE_ORDER;
-                });
+                if (containerCheck("How much do you want to pay")) state = State.PLACE_ORDER;
             }
 
             case PLACE_ORDER -> {
@@ -93,7 +89,7 @@ public class BazaarFlipper {
 
     private void lastStateCheck() {
         if (state != lastState) {
-            scheduler.reset();
+            clock.stop();
             lastState = state;
         }
     }
@@ -127,6 +123,11 @@ public class BazaarFlipper {
                 e.printStackTrace();
             }
         }
+    }
+
+    private boolean containerCheck(String name) {
+        if (minecraft.screen == null) return false;
+        return minecraft.screen.getTitle().toString().contains(name);
     }
 }
 
