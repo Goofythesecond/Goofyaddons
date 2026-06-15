@@ -1,11 +1,9 @@
 package com.goofy.goofyaddons.utils;
 
-import net.minecraft.client.Minecraft;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class Schedular {
+public class Scheduler {
     private int ticks = 0;
     private boolean firedThisTick = false;
     final private List<ScheduledAction> actions = new ArrayList<>();

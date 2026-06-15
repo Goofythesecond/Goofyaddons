@@ -3,7 +3,7 @@ package com.goofy.goofyaddons;
 import com.goofy.goofyaddons.utils.InventoryScanner;
 import com.goofy.goofyaddons.features.bookflipper.ItemMonitor;
 import com.goofy.goofyaddons.features.bookflipper.ItemPicker;
-import com.goofy.goofyaddons.utils.Schedular;
+import com.goofy.goofyaddons.utils.Scheduler;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -57,7 +57,7 @@ public class GoofyAddonsClient implements ClientModInitializer {
     boolean keepRunning = false;
     private InventoryScanner invscanner = new InventoryScanner();
     private State lastState = null;
-    private Schedular schedular = new Schedular();
+    private Scheduler scheduler = new Scheduler();
     private boolean once = false;
 
     @Override
@@ -88,11 +88,11 @@ public class GoofyAddonsClient implements ClientModInitializer {
                 System.out.println(itemtoMonitor.isOutbid());
             }
             if (state != lastState) {
-                schedular.reset();
+                scheduler.reset();
                 lastState = state;
                 System.out.println("State changed to: " + state);
             }
-            schedular.tick();
+            scheduler.tick();
 
             switch (state) {
                 case IDLE -> {
@@ -122,21 +122,21 @@ public class GoofyAddonsClient implements ClientModInitializer {
                 }
 
                 case CLICKING_BOOK -> {
-                    schedular.at(10, () -> {
+                    scheduler.at(10, () -> {
                         clickMenuSlot(13);
                         state = State.FILLING_SIGN;
                     });
                 }
 
                 case FILLING_SIGN -> {
-                    schedular.at(10, () -> clickMenuSlot(15));
-                    schedular.at(20, () -> clickMenuSlot(16));
-                    schedular.every(25, 1, () -> {
+                    scheduler.at(10, () -> clickMenuSlot(15));
+                    scheduler.at(20, () -> clickMenuSlot(16));
+                    scheduler.every(25, 1, () -> {
                         if (minecraft.screen instanceof SignEditScreen) {
                             editSign();
                         }
                     });
-                    schedular.every(35, 1, () -> {
+                    scheduler.every(35, 1, () -> {
                         if (minecraft.screen instanceof SignEditScreen) return;
                         List<Integer> fixup = invscanner.findLoreContainer("Click to fixup!");
                         if (!fixup.isEmpty()) {
@@ -148,11 +148,11 @@ public class GoofyAddonsClient implements ClientModInitializer {
                 }
 
                 case PLACING_ORDER -> {
-                    schedular.at(20, () -> {
+                    scheduler.at(20, () -> {
                         itemtoMonitor.setItem("ENCHANTMENT_ULTIMATE_WISE_2", invscanner.getUnitPrice(12));
                         clickMenuSlot(12);
                     });
-                    schedular.at(40, () -> {
+                    scheduler.at(40, () -> {
                         clickMenuSlot(13);
                         state = State.DONE;
                     });
@@ -161,19 +161,19 @@ public class GoofyAddonsClient implements ClientModInitializer {
 
                 case DONE -> {
                     itemFlip = null;
-                    schedular.every(40, 20, () -> {
+                    scheduler.every(40, 20, () -> {
                         if (itemtoMonitor.isOutbid()) state = State.OUTBID;
                     });
                 }
 
                 case OUTBID -> {
-                    schedular.at(10, () -> openBazaar("Wise"));
-                    schedular.at(30, () -> clickMenuSlot(50));
-                    schedular.at(50, () -> state = State.SCAN);
+                    scheduler.at(10, () -> openBazaar("Wise"));
+                    scheduler.at(30, () -> clickMenuSlot(50));
+                    scheduler.at(50, () -> state = State.SCAN);
                 }
 
                 case SCAN -> {
-                    schedular.every(20, 20, () -> {
+                    scheduler.every(20, 20, () -> {
                         List<Integer> slots = invscanner.findContainer("BUY Ultimate Wise II");
                         if (slots.isEmpty()) {
                             return;
@@ -199,7 +199,7 @@ public class GoofyAddonsClient implements ClientModInitializer {
 
                 case REPLACE_ORDER -> {
 
-                    schedular.every(10, 20, () -> {
+                    scheduler.every(10, 20, () -> {
                         List<Integer> slots = invscanner.findContainer("BUY Ultimate Wise II");
                         if (slots.isEmpty()) {
                             return;
@@ -207,7 +207,7 @@ public class GoofyAddonsClient implements ClientModInitializer {
 
                         int slot = slots.get(0);
                         clickMenuSlot(slot);
-                        schedular.at(20, () -> {
+                        scheduler.at(20, () -> {
                             clickMenuSlot(11);
                             state = State.INVSCAN;
                         });
@@ -215,8 +215,8 @@ public class GoofyAddonsClient implements ClientModInitializer {
                 }
 
                 case INVSCAN -> {
-                    schedular.at(10, () -> minecraft.player.connection.sendCommand("ec 1"));
-                    schedular.every(20, 20, () -> {
+                    scheduler.at(10, () -> minecraft.player.connection.sendCommand("ec 1"));
+                    scheduler.every(20, 20, () -> {
                         List<Integer> list = invscanner.findLoreInv("Ultimate Wise II");
                         if (list.isEmpty()) {
                             state = State.OPENING_BAZAAR;
@@ -228,8 +228,8 @@ public class GoofyAddonsClient implements ClientModInitializer {
                 }
 
                 case ANVIL -> {
-                    schedular.at(10, () -> minecraft.player.connection.sendCommand("ec 1"));
-                    schedular.every(20, 20, () -> {
+                    scheduler.at(10, () -> minecraft.player.connection.sendCommand("ec 1"));
+                    scheduler.every(20, 20, () -> {
                         List<Integer> list = invscanner.findLoreContainer("Ultimate Wise II");
                         if (list.isEmpty()) {
                             state = State.COMBINE;
@@ -391,8 +391,6 @@ public class GoofyAddonsClient implements ClientModInitializer {
                 setMessage.setAccessible(true);
                 setMessage.invoke(signScreen, booksToOrder);
 
-                Field messagesField = AbstractSignEditScreen.class.getDeclaredField("messages");
-                messagesField.setAccessible(true);
                 minecraft.setScreen(null);
             } catch (Exception e) {
                 e.printStackTrace();

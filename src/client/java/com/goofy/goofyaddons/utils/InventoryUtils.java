@@ -6,17 +6,12 @@ import net.minecraft.world.inventory.ContainerInput;
 
 public class InventoryUtils {
 
-    public enum ClickType {
-        LEFT, RIGHT
-    }
-
-    public static void clickSlot(int slot, ClickType clickType, boolean shift) {
+    public static void clickSlot(int slot, boolean shift) {
         Minecraft minecraft = Minecraft.getInstance();
         AbstractContainerMenu menu = minecraft.player.containerMenu;
 
-        int button = clickType == ClickType.RIGHT ? 1 : 0;
         ContainerInput input = shift ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP;
 
-        minecraft.gameMode.handleContainerInput(menu.containerId, slot, button, input, minecraft.player);
+        minecraft.gameMode.handleContainerInput(menu.containerId, slot, 0, input, minecraft.player);
     }
 }

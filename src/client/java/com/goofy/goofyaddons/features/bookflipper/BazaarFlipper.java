@@ -1,35 +1,41 @@
 package com.goofy.goofyaddons.features.bookflipper;
 
-import com.goofy.goofyaddons.utils.Schedular;
+import com.goofy.goofyaddons.features.bookflipper.helper.Book;
+import com.goofy.goofyaddons.features.bookflipper.helper.FlipCalculator;
+import com.goofy.goofyaddons.features.bookflipper.helper.FlipItem;
+import com.goofy.goofyaddons.utils.*;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.lang.reflect.Field;
+import java.util.*;
 
-import com.goofy.goofyaddons.utils.Scoreboard;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 
 public class BazaarFlipper {
     private enum State {
         START,
         IDLE,
         FETCHING,
-        BAZAAR_NAVIGATION
+        BAZAAR_NAVIGATION,
+        PLACE_ORDER
     }
 
-    private Schedular schedular = new Schedular();
+    private Scheduler scheduler = new Scheduler();
     private State state = State.IDLE;
     private State lastState = null;
     private List<FlipItem> flipItemsList = new ArrayList<>();
     private FlipCalculator flipCalculator = new FlipCalculator();
     private Scoreboard scoreboard = new Scoreboard();
     private final Queue<FlipItem> queue = new LinkedList<>();
+    InventoryScanner inventoryScanner = new InventoryScanner();
     Minecraft minecraft = Minecraft.getInstance();
+    private Book currentBook = null;
+    private Map<Book, ItemMonitor> itemOrder = new HashMap<>();
 
     public void onTick() {
         lastStateCheck();
-        schedular.tick();
+        scheduler.tick();
 
         switch (state) {
             case START -> {
@@ -38,13 +44,45 @@ public class BazaarFlipper {
 
             case FETCHING -> {
                 if (!flipItemsList.isEmpty()) processData();
-                schedular.every(20, 10, () -> flipItemsList = flipCalculator.getFlipItemsList());
+                scheduler.every(20, 10, () -> flipItemsList = flipCalculator.getFlipItemsList());
             }
 
             case BAZAAR_NAVIGATION -> {
-                openBazaar(queue.peek().book().name());
-                if (minecraft.screen.getTitle().toString().contains("Bazaar")) {
+                if (!queue.isEmpty()) {
+                    queue.poll().setBook(currentBook);
                 }
+                openBazaar(currentBook.name());
+                if (minecraft.screen.getTitle().toString().contains("Bazaar")) {
+                    scheduler.at(5, () -> {
+                        int slot = inventoryScanner.findContainer(currentBook.getRomanLevel(currentBook.level())).getFirst();
+                        InventoryUtils.clickSlot(slot, false);
+                    });
+                }
+
+                if (minecraft.screen.getTitle().toString().contains(currentBook.name())) {
+                    scheduler.at(5, () -> InventoryUtils.clickSlot(15, false));
+                }
+
+                if (minecraft.screen.getTitle().toString().contains("How many do you want")) {
+                    scheduler.at(5, () -> InventoryUtils.clickSlot(16, false));
+                }
+
+                scheduler.every(25, 1, () -> {
+                    if (minecraft.screen instanceof SignEditScreen) {
+                        handleSign();
+                    }
+                });
+                scheduler.every(35, 1, () -> {
+                    if (minecraft.screen instanceof SignEditScreen) return;
+                    List<Integer> fixup = inventoryScanner.findLoreContainer("Click to fixup!");
+                    if (!fixup.isEmpty()) {
+                        InventoryUtils.clickSlot(fixup.get(0), false);
+                    } else if (minecraft.screen.getTitle().toString().contains("How much do you want to pay")) state = State.PLACE_ORDER;
+                });
+            }
+
+            case PLACE_ORDER -> {
+
             }
         }
 
@@ -54,7 +92,7 @@ public class BazaarFlipper {
 
     private void lastStateCheck() {
         if (state != lastState) {
-            schedular.reset();
+            scheduler.reset();
             lastState = state;
         }
     }
@@ -76,6 +114,19 @@ public class BazaarFlipper {
         minecraft.player.connection.sendCommand(name);
     }
 
+    private void handleSign() {
+        if (minecraft.screen instanceof AbstractSignEditScreen signScreen) {
+            try {
+                Field messagesField = AbstractSignEditScreen.class.getDeclaredField("messages");
+                messagesField.setAccessible(true);
+                String[] messages = (String[]) messagesField.get(signScreen);
+                messages[0] = String.valueOf(currentBook.getQtyAmount(currentBook.level()));
+                minecraft.setScreen(null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
 
 

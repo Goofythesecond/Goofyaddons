@@ -1,4 +1,4 @@
-package com.goofy.goofyaddons.features.bookflipper;
+package com.goofy.goofyaddons.features.bookflipper.helper;
 
 public record Book(String id, int level, int sellLevel, String name) {
 
@@ -8,7 +8,7 @@ public record Book(String id, int level, int sellLevel, String name) {
     }
 
     public String getRomanLevel(int i) {
-        return id + "_" + toRoman(i);
+        return name + toRoman(i);
     }
 
     private String toRoman(int num) {

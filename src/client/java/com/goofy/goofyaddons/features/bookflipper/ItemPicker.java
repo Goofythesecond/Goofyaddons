@@ -1,4 +1,5 @@
 package com.goofy.goofyaddons.features.bookflipper;
+import com.goofy.goofyaddons.features.bookflipper.helper.Book;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;

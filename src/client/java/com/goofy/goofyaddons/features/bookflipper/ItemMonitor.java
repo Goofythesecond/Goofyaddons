@@ -16,6 +16,7 @@ public class ItemMonitor {
     public ItemMonitor(String itemId, double myPrice) {
         this.itemId = itemId;
         this.myPrice = myPrice;
+        start();
     }
 
     public void start() {
