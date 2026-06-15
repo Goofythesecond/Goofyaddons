@@ -1,4 +1,4 @@
-package com.goofy.goofyaddons.features.bookflipper;
+package com.goofy.goofyaddons.features.bookflipper.helper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.net.HttpURLConnection;

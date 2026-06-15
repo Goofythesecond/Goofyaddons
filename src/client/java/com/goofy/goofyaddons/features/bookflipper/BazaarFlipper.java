@@ -3,6 +3,7 @@ package com.goofy.goofyaddons.features.bookflipper;
 import com.goofy.goofyaddons.features.bookflipper.helper.Book;
 import com.goofy.goofyaddons.features.bookflipper.helper.FlipCalculator;
 import com.goofy.goofyaddons.features.bookflipper.helper.FlipItem;
+import com.goofy.goofyaddons.features.bookflipper.helper.ItemMonitor;
 import com.goofy.goofyaddons.utils.*;
 
 import java.lang.reflect.Field;
@@ -33,6 +34,7 @@ public class BazaarFlipper {
     private Book currentBook = null;
     private Map<Book, ItemMonitor> itemOrder = new HashMap<>();
 
+
     public void onTick() {
         lastStateCheck();
         scheduler.tick();
@@ -51,28 +53,23 @@ public class BazaarFlipper {
                 if (!queue.isEmpty()) {
                     queue.poll().setBook(currentBook);
                 }
-                openBazaar(currentBook.name());
-                if (minecraft.screen.getTitle().toString().contains("Bazaar")) {
-                    scheduler.at(5, () -> {
+                if (minecraft.screen.getTitle().toString().contains("bazaar")) openBazaar(currentBook.name());
+                    scheduler.at(20, () -> {
                         int slot = inventoryScanner.findContainer(currentBook.getRomanLevel(currentBook.level())).getFirst();
                         InventoryUtils.clickSlot(slot, false);
                     });
-                }
 
-                if (minecraft.screen.getTitle().toString().contains(currentBook.name())) {
-                    scheduler.at(5, () -> InventoryUtils.clickSlot(15, false));
-                }
+                    scheduler.at((scheduler.getTicks() + 40), () -> InventoryUtils.clickSlot(15, false));
 
-                if (minecraft.screen.getTitle().toString().contains("How many do you want")) {
-                    scheduler.at(5, () -> InventoryUtils.clickSlot(16, false));
-                }
+                    scheduler.at((scheduler.getTicks() + 60), () -> InventoryUtils.clickSlot(16, false));
 
-                scheduler.every(25, 1, () -> {
+
+                scheduler.every((scheduler.getTicks() + 80), 5, () -> {
                     if (minecraft.screen instanceof SignEditScreen) {
                         handleSign();
                     }
                 });
-                scheduler.every(35, 1, () -> {
+                scheduler.every(90, 5, () -> {
                     if (minecraft.screen instanceof SignEditScreen) return;
                     List<Integer> fixup = inventoryScanner.findLoreContainer("Click to fixup!");
                     if (!fixup.isEmpty()) {

@@ -1,7 +1,7 @@
 package com.goofy.goofyaddons;
 
 import com.goofy.goofyaddons.utils.InventoryScanner;
-import com.goofy.goofyaddons.features.bookflipper.ItemMonitor;
+import com.goofy.goofyaddons.features.bookflipper.helper.ItemMonitor;
 import com.goofy.goofyaddons.features.bookflipper.ItemPicker;
 import com.goofy.goofyaddons.utils.Scheduler;
 import com.mojang.blaze3d.platform.InputConstants;
