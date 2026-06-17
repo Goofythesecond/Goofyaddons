@@ -49,7 +49,6 @@ public class FlipCalculator {
                         loadProduct(products, book.getLevel(book.level()));
                         loadProduct(products, book.getLevel(book.sellLevel()));
 
-
                     }
                     processData();
                 });
