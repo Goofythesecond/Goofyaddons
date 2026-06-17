@@ -2,7 +2,7 @@ package com.goofy.goofyaddons.features.bookflipper.helper;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.jetbrains.annotations.Async;
+
 
 import java.net.URI;
 import java.net.http.HttpClient;
