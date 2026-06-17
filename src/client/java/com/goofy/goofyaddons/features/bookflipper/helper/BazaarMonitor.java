@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 public class BazaarMonitor {
     private final List<BazaarMonitorItem> buyOrderList = new ArrayList<>();
     private final List<BazaarMonitorItem> sellOrderList = new ArrayList<>();
+    private final List<Book> getOutbidBuyOrderBookList = new ArrayList<>();
+    private final List<Book> getOutbidSellOrderBookList = new ArrayList<>();
     private boolean running = false;
     private HttpClient client = HttpClient.newHttpClient();
     private long duration = 60000;
@@ -39,10 +41,8 @@ public class BazaarMonitor {
     }
 
     public List<Book> isOutbid(boolean isSellOrder) {
-        return (isSellOrder ? sellOrderList : buyOrderList).stream()
-                .filter(item -> item.isOutbid)
-                .map(item -> item.book)
-                .collect(Collectors.toList());
+        if (isSellOrder) return getOutbidSellOrderBookList;
+        return getOutbidBuyOrderBookList;
     }
 
     public void onTick() {
@@ -80,6 +80,17 @@ public class BazaarMonitor {
                     buyOrderList.forEach(item -> outbidScanner(products, item, false));
                     sellOrderList.forEach(item -> outbidScanner(products, item, true));
 
+                    for (BazaarMonitorItem list : buyOrderList) {
+                        if (!list.getOutbid()) return;
+                        buyOrderList.remove(list);
+                        getOutbidBuyOrderBookList.add(list.book);
+                    }
+
+                    for (BazaarMonitorItem list : sellOrderList) {
+                        if (!list.getOutbid()) return;
+                        buyOrderList.remove(list);
+                        getOutbidBuyOrderBookList.add(list.book);
+                    }
                 });
 
     }
@@ -88,14 +99,14 @@ public class BazaarMonitor {
         JsonObject productID = products.getAsJsonObject(bazaarMonitorItem.book.getLevel(bazaarMonitorItem.book.level()));
         if (isSellOrder) {
             JsonObject entry = productID.getAsJsonArray("sell_summary").get(0).getAsJsonObject();
-            int orders = entry.getAsJsonObject("orders").getAsInt();
-            double price = entry.getAsJsonObject("pricePerUnit").getAsDouble();
+            int orders = entry.get("orders").getAsInt();
+            double price = entry.get("pricePerUnit").getAsDouble();
 
             if (orders > 1 || price != bazaarMonitorItem.price) bazaarMonitorItem.setOutbid(true);
         } else {
             JsonObject entry = productID.getAsJsonArray("buy_summary").get(0).getAsJsonObject();
-            int orders = entry.getAsJsonObject("orders").getAsInt();
-            double price = entry.getAsJsonObject("pricePerUnit").getAsDouble();
+            int orders = entry.get("orders").getAsInt();
+            double price = entry.get("pricePerUnit").getAsDouble();
 
             if (orders > 1 || price != bazaarMonitorItem.price) bazaarMonitorItem.setOutbid(true);
         }
@@ -121,6 +132,10 @@ public class BazaarMonitor {
 
         public void setOutbid(boolean outbid) {
             isOutbid = outbid;
+        }
+
+        public boolean getOutbid() {
+            return isOutbid;
         }
     }
 
