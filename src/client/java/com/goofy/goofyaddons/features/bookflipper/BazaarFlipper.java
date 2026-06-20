@@ -20,6 +20,7 @@ import java.util.Queue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 
 public class BazaarFlipper {
     private enum State {
@@ -27,7 +28,8 @@ public class BazaarFlipper {
         IDLE,
         FETCHING,
         BAZAAR_NAVIGATION,
-        PLACE_ORDER
+        PLACE_ORDER,
+        OUTBID
     }
     private Clock clock = new Clock();
     private State state = State.IDLE;
@@ -42,6 +44,9 @@ public class BazaarFlipper {
     private BazaarMonitor bazaarMonitor = new BazaarMonitor();
     private List<Book> buyOrderBook = new ArrayList<>();
     private Map<Book, Integer> bookIntegerMap = new HashMap<>();
+    private List<Book> outbidBuyOrderBook = new ArrayList<>();
+    private List<Integer> listOfBookSlots = new ArrayList<>();
+
 
 
     public void onTick() {
@@ -53,18 +58,22 @@ public class BazaarFlipper {
             }
 
             case IDLE -> {
-                clock.start(30000);
-                if (!clock.shouldFire()) return;
-                for (Book book : buyOrderBook) {
-                    List<Book> outbidBookList = bazaarMonitor.isOutbid(false);
-                    if (outbidBookList.isEmpty()) return;
-                    buyOrderBook.remove(book);
-                    queue.poll();
+                clock.start(15000);
+                if (!clock.shouldFire()) {
+                    for (Book book : buyOrderBook) {
+                        List<Book> outbidBookList = bazaarMonitor.isOutbid(false);
+                        if (outbidBookList.isEmpty()) continue;
+                        buyOrderBook.remove(book);
+                        outbidBuyOrderBook.add(book);
+                    }
+                    if (!outbidBuyOrderBook.isEmpty()) return;
+                    state = State.OUTBID;
                 }
+
             }
 
             case FETCHING -> {
-                if (queue.isEmpty()) {
+                if (!queue.isEmpty()) {
                     currentBook = queue.poll();
                     state = State.BAZAAR_NAVIGATION;
                 }
@@ -78,7 +87,7 @@ public class BazaarFlipper {
 
             case BAZAAR_NAVIGATION -> {
                 if (!containerCheck("Bazaar")) clock.start(250);
-                if (!containerCheck("Bazaar") & clock.shouldFire()) openBazaar(currentBook.name());
+                if (!containerCheck("Bazaar") & clock.shouldFire()) openBazaar(currentBook.name().replace("Ultimate", ""));
 
                 if (containerCheck("Bazaar")) clock.start(500);
                 if (containerCheck("Bazaar") & clock.shouldFire()) {
@@ -116,6 +125,27 @@ public class BazaarFlipper {
                 }
             }
 
+            case OUTBID -> {
+                    if (!containerCheck("Bazaar")) clock.start(250);
+                    if (!containerCheck("Bazaar") & clock.shouldFire()) openBazaar("Wise");
+
+                    if (containerCheck("Wise")) clock.start(500);
+                    if (containerCheck("Wise") & clock.shouldFire()) InventoryUtils.clickSlot(50, false);
+
+                    if (containerCheck("Bazaar")) clock.start(250);
+                    if (containerCheck("Bazaar") & clock.shouldFire()) {
+                        for (Book book : outbidBuyOrderBook) {
+                            List<Integer> slot = inventoryScanner.findContainer("BUY " + book.getRomanLevel(book.level()));
+                            outbidBuyOrderBook.remove(book);
+                            if (slot.isEmpty()) continue;
+                            listOfBookSlots.add(slot.get(0));
+                        }
+                    }
+
+
+                    if (containerCheck("Options")) clock.start(250);
+                    if (containerCheck("Options") & clock.shouldFire()) InventoryUtils.clickSlot(11, false);
+            }
 
         }
 
@@ -144,6 +174,7 @@ public class BazaarFlipper {
     }
 
     private void openBazaar(String name) {
+        if (containerCheck("bazaar")) return;
         minecraft.player.connection.sendCommand(name);
     }
 
