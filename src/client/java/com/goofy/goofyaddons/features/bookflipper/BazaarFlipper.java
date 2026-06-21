@@ -20,7 +20,8 @@ import java.util.Queue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+
+
 
 public class BazaarFlipper {
     private enum State {
@@ -45,7 +46,6 @@ public class BazaarFlipper {
     private List<Book> buyOrderBook = new ArrayList<>();
     private Map<Book, Integer> bookIntegerMap = new HashMap<>();
     private List<Book> outbidBuyOrderBook = new ArrayList<>();
-    private List<Integer> listOfBookSlots = new ArrayList<>();
 
 
 
@@ -134,17 +134,14 @@ public class BazaarFlipper {
 
                     if (containerCheck("Bazaar")) clock.start(250);
                     if (containerCheck("Bazaar") & clock.shouldFire()) {
-                        for (Book book : outbidBuyOrderBook) {
-                            List<Integer> slot = inventoryScanner.findContainer("BUY " + book.getRomanLevel(book.level()));
-                            outbidBuyOrderBook.remove(book);
-                            if (slot.isEmpty()) continue;
-                            listOfBookSlots.add(slot.get(0));
-                        }
+                        if (outbidBuyOrderBook.isEmpty()) state = State.FETCHING;
+
+                        int slot = inventoryScanner.findContainer("BUY " + outbidBuyOrderBook.getFirst()
+                                .getRomanLevel(outbidBuyOrderBook.getFirst().level())).getFirst();
+
+
                     }
 
-
-                    if (containerCheck("Options")) clock.start(250);
-                    if (containerCheck("Options") & clock.shouldFire()) InventoryUtils.clickSlot(11, false);
             }
 
         }
