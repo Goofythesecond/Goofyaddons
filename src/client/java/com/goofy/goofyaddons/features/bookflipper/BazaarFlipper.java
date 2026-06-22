@@ -155,6 +155,7 @@ public class BazaarFlipper {
                             == outbidBuyOrderBook.getFirst().getQtyAmount(outbidBuyOrderBook.getFirst().level())) {
                                 completedList.add(outbidBuyOrderBook.getFirst());
                                 booksToStore.remove(outbidBuyOrderBook.getFirst());
+                                bookIntegerMap.remove(outbidBuyOrderBook.getFirst());
                                 outbidBuyOrderBook.removeFirst();
                             } else {
                                 queue.add(outbidBuyOrderBook.getFirst());
