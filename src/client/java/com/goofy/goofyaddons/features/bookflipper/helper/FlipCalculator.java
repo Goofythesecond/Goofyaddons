@@ -10,6 +10,7 @@ import java.net.http.HttpResponse;
 import java.util.*;
 
 public class FlipCalculator {
+    private boolean running = false;
     private HttpClient client = HttpClient.newHttpClient();
     private final List<Book> books = new ArrayList<>();
     private final Map<String, BazaarData> bazaar = new HashMap<>();
@@ -18,14 +19,16 @@ public class FlipCalculator {
     public FlipCalculator() {
         books.add(new Book("ENCHANTMENT_ULTIMATE_WISE", 1, 5, "Ultimate Wise"));
         books.add(new Book("ENCHANTMENT_ULTIMATE_WISE", 2, 5, "Ultimate Wise"));
-        books.add(new Book("ENCHANTMENT_ULTIMATE_WISDOM", 1, 5, "Wisdom"));
-        books.add(new Book("ENCHANTMENT_ULTIMATE_WISDOM", 2, 5, "Wisdom"));
-        books.add(new Book("ENCHANTMENT_ULTIMATE_LAST_STAND", 1, 5, "Last Stand"));
-        books.add(new Book("ENCHANTMENT_ULTIMATE_LAST_STAND", 2, 5, "Last Stand"));
+        // books.add(new Book("ENCHANTMENT_ULTIMATE_WISDOM", 1, 5, "Wisdom"));
+        // books.add(new Book("ENCHANTMENT_ULTIMATE_WISDOM", 2, 5, "Wisdom"));
+        // books.add(new Book("ENCHANTMENT_ULTIMATE_LAST_STAND", 1, 5, "Last Stand"));
+        // books.add(new Book("ENCHANTMENT_ULTIMATE_LAST_STAND", 2, 5, "Last Stand"));
     }
 
 
     public void Refresh() {
+        if (running) return;
+        running = true;
         bazaar.clear();
         flipItemsList.clear();
 
@@ -51,6 +54,7 @@ public class FlipCalculator {
 
                     }
                     processData();
+                    running = false;
                 });
 
     }
@@ -71,25 +75,30 @@ public class FlipCalculator {
 
     private void processData() {
 
+        flipItemsList.clear();
+
         for (Book book : books) {
 
             BazaarData buyData = bazaar.get(book.getLevel(book.level()));
             BazaarData sellData = bazaar.get(book.getLevel(book.sellLevel()));
 
             if (buyData == null || sellData == null) continue;
-            int qty = book.getQtyAmount(book.level());
-            double cost = buyData.buyPrice() * qty;
 
-            double revenue = sellData.sellPrice();
+            int qty = book.getQtyAmount(book.level());
+
+            double cost = buyData.sellPrice() * qty;
+            double revenue = sellData.buyPrice();
 
             double profit = revenue - cost;
+
             if (profit <= 0 || cost <= 0) continue;
+
             double score = profit * Math.log10(sellData.sellVolume() + 1) / Math.sqrt(cost);
 
             flipItemsList.add(new FlipItem(book, cost, score));
         }
-        flipItemsList.sort(Comparator.comparingDouble(FlipItem::score).reversed());
 
+        flipItemsList.sort(Comparator.comparingDouble(FlipItem::score).reversed());
     }
 
     public List<FlipItem> getFlipItemsList() {

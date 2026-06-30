@@ -8,7 +8,7 @@ public record Book(String id, int level, int sellLevel, String name) {
     }
 
     public String getRomanLevel(int i) {
-        return name + toRoman(i);
+        return name + " " + toRoman(i);
     }
 
     private String toRoman(int num) {
@@ -28,7 +28,7 @@ public record Book(String id, int level, int sellLevel, String name) {
     }
 
     public int getQtyAmount(int level) {
-        return (1 << (sellLevel - level)) - 1;
+        return (1 << (sellLevel - level));
     }
 
 }

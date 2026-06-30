@@ -5,6 +5,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 
@@ -16,13 +17,16 @@ public class InventoryScanner {
 
     public List<Integer> findInv(String name) {
         List<Integer> slots = new ArrayList<>();
-        Inventory inventory = minecraft.player.getInventory();
-        for (int i = 0; i < inventory.getContainerSize(); i++) {
-            ItemStack item = inventory.getItem(i);
+        Inventory playerInv = minecraft.player.getInventory();
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+
+        for (Slot slot : menu.slots) {
+            if (slot.container != playerInv) continue;
+            ItemStack item = slot.getItem();
             if (item.isEmpty()) continue;
             if (item.getCustomName() == null) continue;
             if (!item.getCustomName().getString().equals(name)) continue;
-            slots.add(i);
+            slots.add(slot.index);
         }
         return slots;
     }
@@ -43,13 +47,16 @@ public class InventoryScanner {
 
     public List<Integer> findLoreInv(String string) {
         List<Integer> slots = new ArrayList<>();
-        Inventory inventory = minecraft.player.getInventory();
-        for (int i = 0; i < inventory.getContainerSize(); i++) {
-            ItemStack item = inventory.getItem(i);
+        Inventory playerInv = minecraft.player.getInventory();
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+
+        for (Slot slot : menu.slots) {
+            if (slot.container != playerInv) continue;
+            ItemStack item = slot.getItem();
             if (item.isEmpty()) continue;
             ItemLore lore = item.get(DataComponents.LORE);
             if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().equals(string))) continue;
-            slots.add(i);
+            slots.add(slot.index);
         }
         return slots;
     }

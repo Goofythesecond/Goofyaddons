@@ -41,15 +41,15 @@ public class BazaarMonitor {
     }
 
     public List<Book> isOutbid(boolean isSellOrder) {
-        List<Book> sellOrderBooks = getOutbidSellOrderBookList;
-        List<Book> buyOrderBooks = getOutbidBuyOrderBookList;
         if (!isSellOrder) {
+            List<Book> outbids = new ArrayList<>(getOutbidBuyOrderBookList);
             getOutbidBuyOrderBookList.clear();
-            return buyOrderBooks;
+            return outbids;
         }
 
+        List<Book> outbids = new ArrayList<>(getOutbidSellOrderBookList);
         getOutbidSellOrderBookList.clear();
-        return sellOrderBooks;
+        return outbids;
     }
 
     public void onTick() {
@@ -61,6 +61,7 @@ public class BazaarMonitor {
     }
 
     public void start() {
+        if (running) return;
         running = true;
         startMs = System.currentTimeMillis();
     }
@@ -70,6 +71,7 @@ public class BazaarMonitor {
     }
 
     public void refresh() {
+
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.hypixel.net/v2/skyblock/bazaar"))
@@ -87,17 +89,21 @@ public class BazaarMonitor {
                     buyOrderList.forEach(item -> outbidScanner(products, item, false));
                     sellOrderList.forEach(item -> outbidScanner(products, item, true));
 
-                    for (BazaarMonitorItem list : buyOrderList) {
-                        if (!list.getOutbid()) return;
-                        buyOrderList.remove(list);
-                        getOutbidBuyOrderBookList.add(list.book);
-                    }
+                    buyOrderList.removeIf(item -> {
+                        if (item.getOutbid()) {
+                            getOutbidBuyOrderBookList.add(item.book);
+                            return true;
+                        }
+                        return false;
+                    });
 
-                    for (BazaarMonitorItem list : sellOrderList) {
-                        if (!list.getOutbid()) return;
-                        buyOrderList.remove(list);
-                        getOutbidBuyOrderBookList.add(list.book);
-                    }
+                    sellOrderList.removeIf(item -> {
+                        if (item.getOutbid()) {
+                            getOutbidSellOrderBookList.add(item.book);
+                            return true;
+                        }
+                        return false;
+                    });
                 });
 
     }
