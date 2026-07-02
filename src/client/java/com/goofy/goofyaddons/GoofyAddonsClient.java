@@ -30,13 +30,6 @@ public class GoofyAddonsClient implements ClientModInitializer {
             boolean keyDown1 = InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_K);
             boolean keyDown3 = InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_L);
             if (keyDown3) {
-                List<Integer> stageOneBookList   = inventoryScanner.findLoreInv("Ultimate Wise I");
-                System.out.println(stageOneBookList);
-                AbstractContainerMenu menu = minecraft.player.containerMenu;
-                System.out.println(menu.slots.size());
-                Inventory inventory = minecraft.player.getInventory();
-                System.out.println(inventory.getContainerSize() - menu.slots.size());
-                InventoryUtils.clickSlot((10 + 45), true);
             }
             if (keyDown) bazaarFlipper.start();
             if (keyDown1) bazaarFlipper.stop();

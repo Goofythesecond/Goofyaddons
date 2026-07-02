@@ -20,8 +20,6 @@ import java.util.Queue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.ItemStack;
 
 
 public class BazaarFlipper {
@@ -37,6 +35,13 @@ public class BazaarFlipper {
         COMBINE,
         SELL,
         REPLACE_SELL
+    }
+
+    private enum BookState {
+        NOT_ENOUGH_CASH,
+        NONE,
+        BUY_ORDER,
+
     }
 
     public boolean enabled = false;
@@ -63,6 +68,7 @@ public class BazaarFlipper {
     private boolean clickedOnce = false;
     private List<Book> booksToRestart = new ArrayList<>();
     private boolean notEnoughMoney;
+
 
     private void debug(String msg) {
         System.out.println("[BazaarFlipper] [" + state + "] " + msg);
@@ -623,5 +629,41 @@ public class BazaarFlipper {
     private boolean isContainerOpen() {
         if (minecraft.screen == null) return false;
         return true;
+    }
+
+
+    private class Task {
+        private BookState bookState;
+        private int amountToOrder;
+        private int inEnderChest;
+        private int inInventory;
+
+        private BookState getBookState() {
+            return bookState;
+        }
+
+        private void setBookState(BookState bookState) {
+            this.bookState = bookState;
+        }
+
+        private void setAmountToOrder(int amountToOrder) {
+            this.amountToOrder = amountToOrder;
+        }
+
+        private void setInEnderChest(int inEnderChest) {
+            this.inEnderChest = inEnderChest;
+        }
+
+        private void setInInventory(int inInventory) {
+            this.inInventory = inInventory;
+        }
+
+        private int getAmountToOrder() {
+            return amountToOrder - (inEnderChest + inInventory);
+        }
+
+        private boolean shouldCheckInventory() {
+            return inEnderChest > 0;
+        }
     }
 }
