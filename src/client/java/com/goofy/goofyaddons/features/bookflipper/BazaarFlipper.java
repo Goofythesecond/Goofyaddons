@@ -128,7 +128,13 @@ public class BazaarFlipper {
                     return;
                 }
 
-                Book bookToStore = firstBookInState(BookState.SUB_STORE);
+                Book bookToStore = firstBookInState(BookState.STORE);
+                if (bookToStore != null) {
+                    state = State.STORE;
+                    return;
+                }
+
+                Book bookSubStore = firstBookInState(BookState.SUB_STORE);
                 if (bookToStore != null) {
                     state = State.BAZAAR_NAVIGATION;
                     activeBook = bookToStore;
