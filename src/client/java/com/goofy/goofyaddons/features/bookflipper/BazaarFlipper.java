@@ -137,7 +137,7 @@ public class BazaarFlipper {
                 Book bookSubStore = firstBookInState(BookState.SUB_STORE);
                 if (bookSubStore != null) {
                     state = State.BAZAAR_NAVIGATION;
-                    activeBook = bookToStore;
+                    activeBook = bookSubStore;
                     return;
                 }
 
