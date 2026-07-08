@@ -16,7 +16,6 @@ import java.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
-import org.jetbrains.annotations.UnknownNullability;
 
 
 public class BazaarFlipper {
@@ -79,7 +78,7 @@ public class BazaarFlipper {
     }
 
     public BazaarFlipper() {
-        ChatHook.onMessage("filled", this::handleFilledMessage);
+        ChatHook.onMessage("Filled", this::handleFilledMessage);
     }
 
     public void stop() {
