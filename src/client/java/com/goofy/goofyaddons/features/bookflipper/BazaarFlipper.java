@@ -451,6 +451,11 @@ public class BazaarFlipper {
             case SELL -> {
                 List<Integer> slots = new ArrayList<>();
                 List<Book> bookList = (booksInState(BookState.SELL));
+                if (bookList.isEmpty()) {
+                    debug("SELL: bookstoSell empty, switching to IDLE");
+                    state = State.FETCHING;
+                    return;
+                }
                 if (!isContainerOpen()) clock.start(1000);
                 if (!isContainerOpen() && clock.shouldFire()) {
                     debug("SELL: no container, opening bazaar for tomato");
@@ -465,17 +470,6 @@ public class BazaarFlipper {
 
                 if (containerCheck("Bazaar")) clock.start(1000);
                 if (containerCheck("Bazaar") && clock.shouldFire()) {
-
-
-
-                    if (bookList.isEmpty()) {
-                        debug("SELL: bookstoSell empty, switching to IDLE");
-                        state = State.FETCHING;
-                        minecraft.player.closeContainer();
-                        return;
-                    }
-
-
 
                     for (Book book : bookList) {
                         slots.addAll(inventoryScanner.findContainer("SELL " + book.getRomanLevel(5)));
@@ -627,6 +621,7 @@ public class BazaarFlipper {
             }
         }
     }
+
 
     private boolean containerCheck(String name) {
         if (minecraft.screen == null) return false;
