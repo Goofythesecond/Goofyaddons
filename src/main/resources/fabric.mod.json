@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "goofyaddons",
+	"version": "${version}",
+	"name": "GoofyAddons",
+	"description": "Goofy Addons",
+	"authors": [
+		"Goofy"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/goofyaddons/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.goofy.goofyaddons.GoofyAddons"
+		],
+
+		"client": [
+			"com.goofy.goofyaddons.GoofyAddonsClient"
+		],
+
+		"fabric-datagen": [
+			"com.goofy.goofyaddons.GoofyAddonsDataGenerator"
+		]
+	},
+	"mixins": [
+		"goofyaddons.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
