@@ -35,8 +35,8 @@ public class GoofyConfig {
     public int startKey = GLFW.GLFW_KEY_J;
     public int stopKey = GLFW.GLFW_KEY_K;
     public int outbidRefreshDelay = 15000;
-    public int minActionDelay = 500;
-    public int maxActionDelay = 100;
+    public int minActionDelay = 100;
+    public int maxActionDelay = 500;
 
 
     public static void load() {
