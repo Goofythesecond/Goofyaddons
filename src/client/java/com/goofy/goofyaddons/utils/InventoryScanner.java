@@ -31,6 +31,27 @@ public class InventoryScanner {
         return slots;
     }
 
+    public List<Integer> getSellOrder() {
+        List<Integer> slots = new ArrayList<>();
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        int end = menu.slots.size() - 36;
+        for (int i = 0; i < end; i++) {
+            ItemStack item = menu.slots.get(i).getItem();
+            if (item.isEmpty()) continue;
+            if (item.getCustomName() == null) continue;
+            if (!item.getCustomName().getString().contains("SELL")) continue;
+            slots.add(i);
+        }
+        return slots;
+    }
+
+    public String getName(int slot) {
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+
+        ItemStack itemStack = menu.slots.get(slot).getItem();
+        return itemStack.getCustomName().toString();
+    }
+
     public List<Integer> findContainer(String name) {
         List<Integer> slots = new ArrayList<>();
         AbstractContainerMenu menu = minecraft.player.containerMenu;
@@ -103,6 +124,21 @@ public class InventoryScanner {
             unitPrice = Double.parseDouble(digits);
         }
         return unitPrice;
+    }
+
+    public int getEmptyInventorySlots() {
+        int amount = 0;
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        Inventory playerInv = minecraft.player.getInventory();
+
+        for (Slot slot : menu.slots) {
+            if (slot.container != playerInv) continue;
+
+            if (slot.hasItem()) continue;
+            amount++;
+        }
+
+        return amount;
     }
 
 

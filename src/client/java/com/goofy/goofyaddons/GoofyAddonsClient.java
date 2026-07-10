@@ -3,6 +3,7 @@ package com.goofy.goofyaddons;
 import com.goofy.goofyaddons.config.GoofyConfig;
 import com.goofy.goofyaddons.event.ChatHook;
 import com.goofy.goofyaddons.features.bookflipper.BazaarFlipper;
+import com.goofy.goofyaddons.render.gui.GoofyGui;
 import com.goofy.goofyaddons.utils.InventoryScanner;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
