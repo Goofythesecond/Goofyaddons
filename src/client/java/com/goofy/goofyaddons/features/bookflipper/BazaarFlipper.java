@@ -410,10 +410,21 @@ public class BazaarFlipper {
                     }
                     debug("ANVIL: pulling slot " + slots.getFirst() + " from ender chest");
                     InventoryUtils.clickSlot(slots.getFirst(), true);
+                    task.get(bookToHandle).addInInventory(1);
+                    task.get(bookToHandle).addInEnderChest(-1);
                 }
             }
 
             case COMBINE -> {
+
+                Book bookToHandle = firstBookInState(BookState.COMBINE);
+
+                if (bookToHandle == null) {
+                    state = State.SELL;
+                    minecraft.player.closeContainer();
+                    return;
+                }
+
                 if (!containerCheck("Anvil")) clock.start(randomizer());
                 if (!containerCheck("Anvil") && clock.shouldFire()) {
                     debug("COMBINE: no anvil open, opening it");
@@ -422,52 +433,18 @@ public class BazaarFlipper {
 
                 if (containerCheck("Anvil") && counter < 2) clock.start(randomizer());
                 if (containerCheck("Anvil") && counter < 2 && clock.shouldFire()) {
-                    Book bookToHandle = firstBookInState(BookState.COMBINE);
+                    int level = task.get(bookToHandle).getBooktoCombine();
 
-                    if (bookToHandle == null) {
-                        state = State.SELL;
-                        minecraft.player.closeContainer();
-                        return;
-                    }
-
-                    List<Integer> stageOneBookList   = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(1));
-                    List<Integer> stageTwoBookList   = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(2));
-                    List<Integer> stageThreeBookList = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(3));
-                    List<Integer> stageFourBookList  = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(4));
-                    List<Integer> stageFiveBookList  = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(5));
-
-                    debug("COMBINE: stage counts - 1:" + stageOneBookList.size() + " 2:" + stageTwoBookList.size()
-                            + " 3:" + stageThreeBookList.size() + " 4:" + stageFourBookList.size() + " 5:" + stageFiveBookList.size()
-                            + " counter=" + counter);
-
-                    if (!stageOneBookList.isEmpty()) {
-                        debug("COMBINE: placing stage 1 book at slot " + stageOneBookList.getFirst());
-                        InventoryUtils.clickSlot(stageOneBookList.getFirst(), true);
-                        counter++;
-                        return;
-                    }
-                    if (!stageTwoBookList.isEmpty()) {
-                        debug("COMBINE: placing stage 2 book at slot " + stageTwoBookList.getFirst());
-                        InventoryUtils.clickSlot(stageTwoBookList.getFirst(), true);
-                        counter++;
-                        return;
-                    }
-                    if (!stageThreeBookList.isEmpty()) {
-                        debug("COMBINE: placing stage 3 book at slot " + stageThreeBookList.getFirst());
-                        InventoryUtils.clickSlot(stageThreeBookList.getFirst(), true);
-                        counter++;
-                        return;
-                    }
-                    if (!stageFourBookList.isEmpty()) {
-                        debug("COMBINE: placing stage 4 book at slot " + stageFourBookList.getFirst());
-                        InventoryUtils.clickSlot(stageFourBookList.getFirst(), true);
-                        counter++;
-                        return;
-                    }
-                    if (!stageFiveBookList.isEmpty()) {
-                        debug("COMBINE: Completed final book, adding to bookstoSell");
+                    if (level == 0) {
                         editStateBook(bookToHandle, BookState.SELL);
                         return;
+                    }
+
+                    List<Integer> book = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(level));
+
+                    if (!book.isEmpty()) {
+                        counter++;
+                        InventoryUtils.clickSlot(book.getFirst(), true);
                     }
                 }
 
@@ -479,6 +456,7 @@ public class BazaarFlipper {
                         debug("COMBINE: second click done, resetting counter and clickedOnce");
                         counter = 0;
                         clickedOnce = false;
+                        task.get(bookToHandle).increaseCounter();
                         return;
                     }
                     clickedOnce = true;
@@ -710,9 +688,7 @@ public class BazaarFlipper {
             System.out.println("[BazaarFlipper] processData: new task created size:" + task.size());
         }
 
-        if (!wasTasksCreated) {
-
-        }
+        notEnoughCash = wasTasksCreated ? false : true;
     }
 
     private void openBazaar(String name) {
@@ -797,7 +773,7 @@ public class BazaarFlipper {
         private int inEnderChest;
         private int inInventory;
         private boolean earlyAction = false;
-
+        private int counter = 0;
         public boolean isEarlyAction() {
             return earlyAction;
         }
@@ -837,5 +813,25 @@ public class BazaarFlipper {
         private boolean isCompleted() { return getAmountToOrder() == 0; }
 
         private boolean shouldStore() { return inInventory > 0; }
+
+        private int getBooktoCombine() {
+            int result = 0;
+
+            if (counter == inInventory / 2) {
+                inInventory /= 2;
+                counter = 0;
+            }
+
+            if (inInventory > 1) {
+                int divisions = Integer.numberOfTrailingZeros(inInventory);
+                 result = 5 - divisions;
+            }
+
+            return result;
+        }
+
+        private void increaseCounter() {
+            counter++;
+        }
     }
 }
