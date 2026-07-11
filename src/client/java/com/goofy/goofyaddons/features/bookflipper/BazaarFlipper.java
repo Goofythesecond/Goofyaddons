@@ -115,6 +115,7 @@ public class BazaarFlipper {
     }
 
     public void onTick() {
+
         if (!enabled) return;
 
         bazaarMonitor.onTick();
@@ -261,6 +262,7 @@ public class BazaarFlipper {
                     InventoryUtils.clickSlot(13, false);
                     if (shouldStore(activeBook)) {
                         editStateBook(activeBook, BookState.STORE);
+                        state = State.IDLE;
                         return;
                     }
                     editStateBook(activeBook, BookState.BUY_ORDER);
@@ -682,7 +684,7 @@ public class BazaarFlipper {
         }
 
         tasks.entrySet().removeIf(entry ->
-                counts.get(entry.getKey().name()) > 1
+                counts.getOrDefault(entry.getKey().name(), 0) > 1
         );
     }
 
