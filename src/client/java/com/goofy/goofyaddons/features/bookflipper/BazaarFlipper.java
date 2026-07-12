@@ -432,6 +432,9 @@ public class BazaarFlipper {
                     return;
                 }
 
+                int level = task.get(bookToHandle).getBooktoCombine();
+
+
                 if (!containerCheck("Anvil")) clock.start(randomizer());
                 if (!containerCheck("Anvil") && clock.shouldFire()) {
                     debug("COMBINE: no anvil open, opening it");
@@ -440,8 +443,6 @@ public class BazaarFlipper {
 
                 if (containerCheck("Anvil") && counter < 2) clock.start(randomizer());
                 if (containerCheck("Anvil") && counter < 2 && clock.shouldFire()) {
-                    int level = task.get(bookToHandle).getBooktoCombine();
-
                     if (level == 0) {
                         editStateBook(bookToHandle, BookState.SELL);
                         return;
@@ -457,13 +458,17 @@ public class BazaarFlipper {
 
                 if (counter == 2) clock.start(randomizer());
                 if (counter == 2 && clock.shouldFire()) {
+                    List<Integer> books = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(level + 1));
+                    int counter = books.size();
                     debug("COMBINE: counter==2, clicking anvil output slot 22, clickedOnce=" + clickedOnce);
                     InventoryUtils.clickSlot(22, false);
                     if (clickedOnce) {
                         debug("COMBINE: second click done, resetting counter and clickedOnce");
                         counter = 0;
                         clickedOnce = false;
-                        task.get(bookToHandle).increaseCounter();
+                        if (inventoryScanner.locate(bookToHandle.getRomanLevel(level + 1)).size() > counter) {
+                            task.get(bookToHandle).increaseCounter();
+                        }
                         return;
                     }
                     clickedOnce = true;

@@ -96,6 +96,19 @@ public class InventoryScanner {
         return slots;
     }
 
+    public List<Integer> locate(String string) {
+        List<Integer> slots = new ArrayList<>();
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        for (int i = 0; i < menu.slots.size(); i++) {
+            ItemStack item = menu.slots.get(i).getItem();
+            if (item.isEmpty()) continue;
+            ItemLore lore = item.get(DataComponents.LORE);
+            if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().equals(string))) continue;
+            slots.add(i);
+        }
+        return slots;
+    }
+
     public int checkOrder(int slot) {
         int items = 0;
         AbstractContainerMenu menu = minecraft.player.containerMenu;
