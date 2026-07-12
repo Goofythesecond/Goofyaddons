@@ -424,6 +424,7 @@ public class BazaarFlipper {
 
             case COMBINE -> {
 
+
                 Book bookToHandle = firstBookInState(BookState.COMBINE);
 
                 if (bookToHandle == null) {
@@ -459,14 +460,14 @@ public class BazaarFlipper {
                 if (counter == 2) clock.start(randomizer());
                 if (counter == 2 && clock.shouldFire()) {
                     List<Integer> books = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(level + 1));
-                    int counter = books.size();
+                    int counterForBook = books.size();
                     debug("COMBINE: counter==2, clicking anvil output slot 22, clickedOnce=" + clickedOnce);
                     InventoryUtils.clickSlot(22, false);
                     if (clickedOnce) {
                         debug("COMBINE: second click done, resetting counter and clickedOnce");
                         counter = 0;
                         clickedOnce = false;
-                        if (inventoryScanner.locate(bookToHandle.getRomanLevel(level + 1)).size() > counter) {
+                        if (inventoryScanner.locate(bookToHandle.getRomanLevel(level + 1)).size() > counterForBook) {
                             task.get(bookToHandle).increaseCounter();
                         }
                         return;
