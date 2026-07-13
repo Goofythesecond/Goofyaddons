@@ -6,10 +6,7 @@ import com.goofy.goofyaddons.features.bookflipper.helper.BazaarMonitor;
 import com.goofy.goofyaddons.features.bookflipper.helper.Book;
 import com.goofy.goofyaddons.features.bookflipper.helper.FlipCalculator;
 import com.goofy.goofyaddons.features.bookflipper.helper.FlipItem;
-import com.goofy.goofyaddons.utils.Clock;
-import com.goofy.goofyaddons.utils.InventoryScanner;
-import com.goofy.goofyaddons.utils.InventoryUtils;
-import com.goofy.goofyaddons.utils.ScoreboardUtils;
+import com.goofy.goofyaddons.utils.*;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -66,19 +63,35 @@ public class BazaarFlipper {
     private boolean didRemoveOrder = false;
     private boolean claimedItems = false;
     private boolean didReceiveItems = false;
-
+    public boolean debugMode = false;
 
 
     private final Map<Book, Task> task = new LinkedHashMap<>();
 
     private void debug(String msg) {
-        System.out.println("[BazaarFlipper] [" + state + "] " + msg);
+        if (!debugMode) return;
+        ChatUtils.debugMessage("[" + state + "] " + msg);
+    }
+
+    private void dumpTasks() {
+        debug("----- TASK DUMP -----");
+        for (Map.Entry<Book, Task> e : task.entrySet()) {
+            Task t = e.getValue();
+            debug(e.getKey().getRomanLevel(e.getKey().level())
+                    + " state=" + t.getBookState()
+                    + " remaining=" + t.getAmountToOrder()
+                    + " inv=" + t.inInventory
+                    + " ec=" + t.inEnderChest
+                    + " early=" + t.earlyAction);
+        }
+        debug("---------------------");
     }
 
     public void start() {
-        debug("STARTED");
+        ChatUtils.clientMessage("BazaarFlipper: Started");
         if (minecraft.screen != null) {
             minecraft.player.closeContainer();
+            ChatUtils.debugMessage("BazaarFlipper: Container is open, closing");
         }
         enabled = true;
         state = State.START;
@@ -91,33 +104,21 @@ public class BazaarFlipper {
 
     public void stop() {
 
+        ChatUtils.clientMessage("BazaarFlipper: Stopped");
+
         task.clear();
-        debug("Stopping and resetting");
-
         enabled = false;
-
-        // reset state
         state = State.IDLE;
         lastState = null;
-
-        // clear data
         flipItemsList.clear();
-
-        // reset current data
         activeBook = null;
-
-        // reset counters / flags
         counter = 0;
         clickedOnce = false;
-
-        // reset timers
         clock.stop();
-
         bazaarMonitor.stop();
         isInventoryFull = false;
         didRemoveOrder = false;
 
-        debug("Reset complete");
     }
 
     public void onTick() {
@@ -129,9 +130,9 @@ public class BazaarFlipper {
 
         switch (state) {
             case START -> {
-                debug("START: calling flipCalculator.Refresh()");
+                ChatUtils.debugMessage("BazaarFlipper: [START] Refreshing flipCalculator");
                 flipCalculator.Refresh();
-                debug("START: Switching to FETCHING");
+                ChatUtils.clientMessage("BazaarFlipper: [START] Switching to FETCHING");
                 state = State.FETCHING;
                 bazaarMonitor.start();
             }
@@ -139,19 +140,20 @@ public class BazaarFlipper {
             case IDLE -> {
 
                 if (notEnoughCash) {
+                    ChatUtils.debugMessage("BazaarFlipper: [IDLE] notEnoughCash is true");
                     if (!task.isEmpty()) return;
-
+                    ChatUtils.debugMessage("BazaarFlipper: [IDLE] task isn't empty, starting clock");
                     clock.start(60000);
                     if (clock.shouldFire()) {
+                        ChatUtils.debugMessage("BazaarFlipper: [IDLE] 1 Minute clock ended, switching to REPLACE_SELL");
                         state = State.REPLACE_SELL;
                     }
-
                     return;
-
                 }
 
                 Book outbidBook = firstBookInState(BookState.OUTBID);
                 if (outbidBook != null && !isInventoryFull) {
+                    ChatUtils.debugMessage("BazaarFlipper: [IDLE] Found outbid books, switching to OUTBID");
                     state = State.OUTBID;
                     didRemoveOrder = false;
                     didReceiveItems = false;
@@ -161,13 +163,16 @@ public class BazaarFlipper {
 
                 Book selectedBook = firstBookInState(BookState.SELECTED);
                 if (selectedBook != null) {
+                    ChatUtils.debugMessage("BazaarFlipper: [IDLE] Found selected books, switching to BAZAAR_NAVIGATION");
                     activeBook = selectedBook;
+                    debug("Active book set to: " + activeBook);
                     state = State.BAZAAR_NAVIGATION;
                     return;
                 }
 
                 Book bookToStore = firstBookInState(BookState.STORE);
                 if (bookToStore != null) {
+
                     state = State.STORE;
                     isInventoryFull = false;
                     return;
@@ -640,7 +645,7 @@ public class BazaarFlipper {
 
     private void lastStateCheck() {
         if (state != lastState) {
-            System.out.println("[BazaarFlipper] state changed: " + lastState + " -> " + state);
+            ChatUtils.debugMessage("BazaarFlipper: state changed: " + lastState + " -> " + state);
             clock.stop();
             lastState = state;
         }
@@ -668,7 +673,18 @@ public class BazaarFlipper {
 
 
     private void editStateBook(Book book, BookState target) {
-        task.get(book).setBookState(target);
+        Task t = task.get(book);
+        if (t == null) {
+            debug("Attempted state change for missing task: " + book);
+            return;
+        }
+        BookState old = t.getBookState();
+        t.setBookState(target);
+        debug("Book state changed: " + book + " | " + old + " -> " + target
+                + " remaining=" + t.getAmountToOrder()
+                + " inv=" + t.inInventory
+                + " ec=" + t.inEnderChest);
+        dumpTasks();
     }
 
     private Book firstBookInState(BookState target) {
@@ -696,18 +712,18 @@ public class BazaarFlipper {
     private void processData() {
         boolean wasTasksCreated = false;
         if (flipItemsList.isEmpty()) return;
-        System.out.println("[BazaarFlipper] processData: item check passed");
+        ChatUtils.debugMessage("BazaarFlipper: processData: item check passed");
         double purse = scoreboardUtils.getPurse();
-        System.out.println("[BazaarFlipper] processData: purse = " + purse);
+        ChatUtils.debugMessage("BazaarFlipper: processData: purse = " + purse);
 
         for (FlipItem flipItem : flipItemsList) {
             if (purse < flipItem.totalCost()) continue;
             if (task.containsKey(flipItem.book())) continue;
             wasTasksCreated = true;
             purse -= flipItem.totalCost();
-            System.out.println("[BazaarFlipper] processData: new purse = " + purse);
+            ChatUtils.debugMessage("BazaarFlipper: processData: new purse = " + purse);
             task.put(flipItem.book(), new Task(flipItem.book().getQtyAmount(flipItem.book().level())));
-            System.out.println("[BazaarFlipper] processData: new task created size:" + task.size());
+            ChatUtils.debugMessage("BazaarFlipper: processData: new task created size:" + task.size());
         }
 
         notEnoughCash = wasTasksCreated ? false : true;
@@ -715,26 +731,26 @@ public class BazaarFlipper {
 
     private void openBazaar(String name) {
         if (containerCheck("bazaar")) return;
-        System.out.println("[BazaarFlipper] openBazaar: sending command for " + name);
+        ChatUtils.debugMessage("BazaarFlipper: openBazaar: sending command for " + name);
         minecraft.player.connection.sendCommand("bz " + name);
     }
 
     private void openAnvil() {
         if (containerCheck("Anvil")) return;
-        System.out.println("[BazaarFlipper] openAnvil");
+        ChatUtils.debugMessage("BazaarFlipper: openAnvil");
         minecraft.player.connection.sendCommand("Anvil");
     }
 
     private void openEnderChest() {
         if (containerCheck("Ender Chest")) return;
-        System.out.println("[BazaarFlipper] openEnderChest");
+        ChatUtils.debugMessage("BazaarFlipper: openEnderChest");
         minecraft.player.connection.sendCommand("ec");
     }
 
     private void handleSign() {
         String amountToOrder = String.valueOf(task.get(activeBook).getAmountToOrder());
         if (minecraft.screen instanceof AbstractSignEditScreen signScreen) {
-            System.out.println("[BazaarFlipper] handleSign: writing amount=" + amountToOrder + " for book=" + activeBook);
+            ChatUtils.debugMessage("BazaarFlipper: handleSign: writing amount=" + amountToOrder + " for book=" + activeBook);
             try {
                 Field messagesField = AbstractSignEditScreen.class.getDeclaredField("messages");
                 messagesField.setAccessible(true);
@@ -742,7 +758,7 @@ public class BazaarFlipper {
                 messages[0] = amountToOrder;
                 minecraft.setScreen(null);
             } catch (Exception e) {
-                System.out.println("[BazaarFlipper] handleSign: reflection failed - " + e.getMessage());
+                ChatUtils.debugMessage("BazaarFlipper: handleSign: reflection failed - " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -776,7 +792,7 @@ public class BazaarFlipper {
 
         stripped = stripped.substring(stripped.indexOf(' ') + 1);
 
-        System.out.println(stripped);
+        ChatUtils.debugMessage("BazaarFlipper: handleFilledMessage: stripped=" + stripped);
 
         for (Book book : booksInState) {
             if (!stripped.equals(book.getRomanLevel(book.level()))) continue;
