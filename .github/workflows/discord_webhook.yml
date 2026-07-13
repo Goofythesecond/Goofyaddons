@@ -128,7 +128,7 @@ jobs:
                     --arg total "$TOTAL" \
                     '{
                       username: ($repo + " Commits"),
-                      avatar_url: "https://p7.hiclipart.com/preview/227/12/28/catgirl-anime-kawaii-manga-cat.jpg",
+                      avatar_url: "https://i.pinimg.com/736x/b6/43/99/b64399d8dd2cbec217e43144c10b9692.jpg",
                       embeds: [{
                         title: ("[" + $repo + "] New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
                         description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
