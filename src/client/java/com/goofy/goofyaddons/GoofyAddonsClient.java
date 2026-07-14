@@ -3,8 +3,6 @@ package com.goofy.goofyaddons;
 import com.goofy.goofyaddons.config.GoofyConfig;
 import com.goofy.goofyaddons.event.ChatHook;
 import com.goofy.goofyaddons.features.bookflipper.BazaarFlipper;
-import com.goofy.goofyaddons.render.gui.GoofyGui;
-import com.goofy.goofyaddons.utils.ChatUtils;
 import com.goofy.goofyaddons.utils.InventoryScanner;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
@@ -20,15 +18,16 @@ public class GoofyAddonsClient implements ClientModInitializer {
     public void onInitializeClient() {
         GoofyConfig.load();
         ChatHook.register();
-
         final Minecraft minecraft = Minecraft.getInstance();
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             bazaarFlipper.onTick();
             boolean keyDown = InputConstants.isKeyDown(minecraft.getWindow(), GoofyConfig.INSTANCE.startKey);
             boolean keyDown1 = InputConstants.isKeyDown(minecraft.getWindow(), GoofyConfig.INSTANCE.stopKey);
             if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_P)) bazaarFlipper.debugMode = true;
+
             if (keyDown) bazaarFlipper.start();
             if (keyDown1) bazaarFlipper.stop();
+
         });
     }
 }

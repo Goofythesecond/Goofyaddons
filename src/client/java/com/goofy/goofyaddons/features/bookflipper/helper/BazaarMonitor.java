@@ -10,51 +10,42 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.function.Consumer;
 
 
 public class BazaarMonitor {
-    private final List<BazaarMonitorItem> buyOrderList = new ArrayList<>();
-    private final List<BazaarMonitorItem> sellOrderList = new ArrayList<>();
-    private final List<Book> getOutbidBuyOrderBookList = new ArrayList<>();
-    private final List<Book> getOutbidSellOrderBookList = new ArrayList<>();
     private boolean running = false;
     private HttpClient client = HttpClient.newHttpClient();
-    private long duration = 60000;
+    private long duration = 15000;
     private long startMs;
-
+    private long lastUpdated;
+    private final List<BazaarMonitorItem> monitorItemList = new ArrayList<>();
+    private final List<Consumer<Book>> hookList = new ArrayList<>();
 
     public void add(Book book, double price, boolean isSellOrder) {
-        if (isSellOrder) sellOrderList.add(new BazaarMonitorItem(book, price));
-        if (!isSellOrder) buyOrderList.add(new BazaarMonitorItem(book, price));
+        monitorItemList.add(new BazaarMonitorItem(book, price, isSellOrder));
     }
 
-    public void finish(Book book, boolean isSellorder) {
-        if (isSellorder) sellOrderList.removeIf(item -> item.book.equals(book));
-        if (!isSellorder) buyOrderList.removeIf(item -> item.book.equals(book));
+    public void finish(Book book) {
+        monitorItemList.removeIf(bazaarMonitorItem -> {
+            if (monitorItemList.contains(book)) return true;
+            return false;
+        });
     }
 
-    public void reset(boolean sellOrder) {
-        if (sellOrder) sellOrderList.clear();
-        if (!sellOrder) buyOrderList.clear();
-
+    public void reset() {
+        monitorItemList.clear();
     }
 
-    public List<Book> isOutbid(boolean isSellOrder) {
-        if (!isSellOrder) {
-            List<Book> outbids = new ArrayList<>(getOutbidBuyOrderBookList);
-            getOutbidBuyOrderBookList.clear();
-            return outbids;
-        }
-
-        List<Book> outbids = new ArrayList<>(getOutbidSellOrderBookList);
-        getOutbidSellOrderBookList.clear();
-        return outbids;
+    public void hook(Consumer<Book> hook) {
+        hookList.add(hook);
     }
+
 
     public void onTick() {
         if (!running) return;
         if (!((System.currentTimeMillis() - startMs) >= duration)) return;
+        if (monitorItemList.isEmpty()) return;
         startMs = System.currentTimeMillis();
         refresh();
 
@@ -85,65 +76,81 @@ public class BazaarMonitor {
                 )
                 .thenAccept(root -> {
 
+                    long lastUpdated = root.get("lastUpdated").getAsLong();
+
+                    if (lastUpdated == this.lastUpdated) return;
+
+                    this.lastUpdated = lastUpdated;
+
                     JsonObject products = root.getAsJsonObject("products");
-                    buyOrderList.forEach(item -> outbidScanner(products, item, false));
-                    sellOrderList.forEach(item -> outbidScanner(products, item, true));
 
-                    buyOrderList.removeIf(item -> {
-                        if (item.getOutbid()) {
-                            getOutbidBuyOrderBookList.add(item.book);
-                            return true;
-                        }
-                        return false;
-                    });
+                    monitorItemList.forEach(bazaarMonitorItem -> outbidScanner(products, bazaarMonitorItem));
 
-                    sellOrderList.removeIf(item -> {
-                        if (item.getOutbid()) {
-                            getOutbidSellOrderBookList.add(item.book);
-                            return true;
-                        }
+                    monitorItemList.removeIf(bazaarMonitorItem -> {
+                        if (bazaarMonitorItem.getOutbid()) return true;
                         return false;
                     });
                 });
 
     }
 
-    private void outbidScanner(JsonObject products, BazaarMonitorItem bazaarMonitorItem, boolean isSellOrder) {
+    private void outbidScanner(JsonObject products, BazaarMonitorItem bazaarMonitorItem) {
+        if (!bazaarMonitorItem.shouldCheck()) return;
         JsonObject productID = products.getAsJsonObject(bazaarMonitorItem.book.getLevel(bazaarMonitorItem.book.level()));
-        if (isSellOrder) {
+        if (!bazaarMonitorItem.isSellOrder) {
             JsonObject entry = productID.getAsJsonArray("sell_summary").get(0).getAsJsonObject();
             int orders = entry.get("orders").getAsInt();
             double price = entry.get("pricePerUnit").getAsDouble();
 
-            if (orders > 1 || price != bazaarMonitorItem.price) bazaarMonitorItem.setOutbid(true);
+            if (orders > 1 || price != bazaarMonitorItem.price) {
+                bazaarMonitorItem.setOutbid(true);
+                handleOutbid(bazaarMonitorItem);
+            }
         } else {
             JsonObject entry = productID.getAsJsonArray("buy_summary").get(0).getAsJsonObject();
             int orders = entry.get("orders").getAsInt();
             double price = entry.get("pricePerUnit").getAsDouble();
 
-            if (orders > 1 || price != bazaarMonitorItem.price) bazaarMonitorItem.setOutbid(true);
+            if (orders > 1 || price != bazaarMonitorItem.price) {
+                bazaarMonitorItem.setOutbid(true);
+                handleOutbid(bazaarMonitorItem);
+            }
         }
 
+    }
+
+    private void handleOutbid(BazaarMonitorItem bazaarMonitorItem) {
+        hookList.getFirst().accept(bazaarMonitorItem.book);
     }
 
 
 
     private class BazaarMonitorItem {
+        private boolean isSellOrder;
         private Book book;
         private double price;
         private boolean isOutbid = false;
+        private long time;
 
-        public BazaarMonitorItem(Book book, double price) {
+        public BazaarMonitorItem(Book book, double price, boolean isSellOrder) {
             this.book = book;
             this.price = price;
+            this.isSellOrder = isSellOrder;
+            time = System.currentTimeMillis();
         }
 
-        public void setOutbid(boolean outbid) {
+        private void setOutbid(boolean outbid) {
             isOutbid = outbid;
         }
 
-        public boolean getOutbid() {
+        private boolean getOutbid() {
             return isOutbid;
+        }
+
+        private boolean shouldCheck() {
+            if (!((System.currentTimeMillis() - time) >= duration)) return false;
+            time = System.currentTimeMillis();
+            return true;
         }
     }
 

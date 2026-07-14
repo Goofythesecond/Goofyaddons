@@ -100,6 +100,7 @@ public class BazaarFlipper {
     public BazaarFlipper() {
         ChatHook.onMessage("filled", this::handleFilledMessage);
         ChatHook.onMessage("Claimed", this::handleClaimedMessage);
+        bazaarMonitor.hook(this::handleOutbid);
     }
 
     public void stop() {
@@ -141,8 +142,12 @@ public class BazaarFlipper {
 
                 if (notEnoughCash) {
                     ChatUtils.debugMessage("BazaarFlipper: [IDLE] notEnoughCash is true");
-                    if (!task.isEmpty()) return;
-                    ChatUtils.debugMessage("BazaarFlipper: [IDLE] task isn't empty, starting clock");
+                    if (!task.isEmpty()) {
+                        debug("BazaarFlipper: [IDLE] task isn't empty");
+                        notEnoughCash = false;
+                        return;
+                    }
+                    ChatUtils.debugMessage("BazaarFlipper: [IDLE] Starting clock");
                     clock.start(60000);
                     if (clock.shouldFire()) {
                         ChatUtils.debugMessage("BazaarFlipper: [IDLE] 1 Minute clock ended, switching to REPLACE_SELL");
@@ -201,19 +206,6 @@ public class BazaarFlipper {
 
                 }
 
-                clock.start(GoofyConfig.INSTANCE.outbidRefreshDelay);
-                if (clock.shouldFire()) {
-                    debug("IDLE: Checking for outbid");
-                    List<Book> books;
-                    books = bazaarMonitor.isOutbid(false);
-
-                    if (books.isEmpty()) return;
-                    debug("IDLE: Found outbid:" + books.size());
-
-                    for (Book book : books) {
-                        editStateBook(book, BookState.OUTBID);
-                    }
-                }
             }
 
             case FETCHING -> {
@@ -710,23 +702,31 @@ public class BazaarFlipper {
     }
 
     private void processData() {
-        boolean wasTasksCreated = false;
         if (flipItemsList.isEmpty()) return;
         ChatUtils.debugMessage("BazaarFlipper: processData: item check passed");
         double purse = scoreboardUtils.getPurse();
         ChatUtils.debugMessage("BazaarFlipper: processData: purse = " + purse);
 
+        double cost = flipItemsList.stream().mapToDouble(FlipItem::totalCost).min().orElse(-1);
+
+        if (cost != -1) {
+            if (cost > purse) {
+                notEnoughCash = true;
+            }
+        }
+
         for (FlipItem flipItem : flipItemsList) {
+            debug("BazaarFlipper: Checking Flipitem " + flipItem.book().name());
             if (purse < flipItem.totalCost()) continue;
+            debug("BazaarFlipper: User has enough money " + flipItem.book().name());
             if (task.containsKey(flipItem.book())) continue;
-            wasTasksCreated = true;
+            debug("BazaarFlipper: Not in task " + flipItem.book().name());
             purse -= flipItem.totalCost();
             ChatUtils.debugMessage("BazaarFlipper: processData: new purse = " + purse);
             task.put(flipItem.book(), new Task(flipItem.book().getQtyAmount(flipItem.book().level())));
             ChatUtils.debugMessage("BazaarFlipper: processData: new task created size:" + task.size());
         }
 
-        notEnoughCash = wasTasksCreated ? false : true;
     }
 
     private void openBazaar(String name) {
@@ -781,6 +781,11 @@ public class BazaarFlipper {
         }
     }
 
+    private void handleOutbid(Book book) {
+        debug("BazaarFlipper: Found outbid:" + book.getRomanLevel(book.level()));
+        editStateBook(book, BookState.OUTBID);
+    }
+
 
     private void handleFilledMessage(String string) {
         List<Book> booksInState = new ArrayList<>();
@@ -797,7 +802,7 @@ public class BazaarFlipper {
         for (Book book : booksInState) {
             if (!stripped.equals(book.getRomanLevel(book.level()))) continue;
             editStateBook(book, BookState.OUTBID);
-            bazaarMonitor.finish(book, false);
+            bazaarMonitor.finish(book);
         }
     }
 
