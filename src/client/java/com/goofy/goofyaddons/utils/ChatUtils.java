@@ -25,13 +25,13 @@ public class ChatUtils {
     public static void clientMessage(String message) {
         if (minecraft.player == null) return;
 
-        minecraft.player.sendSystemMessage(PREFIX.copy().append(" " + message));
+        minecraft.player.sendSystemMessage(PREFIX.copy().append(" ").append(Component.literal(message).withStyle(ChatFormatting.GRAY)));
     }
 
     public static void debugMessage(String message) {
         if (minecraft.player == null) return;
 
-        minecraft.player.sendSystemMessage(PREFIX.copy().append(" ").append(Component.literal(message).withStyle(ChatFormatting.GRAY)));
+        minecraft.player.sendSystemMessage(PREFIX.copy().append(" ").append(Component.literal(message).withStyle(ChatFormatting.DARK_GRAY)));
 
     }
 

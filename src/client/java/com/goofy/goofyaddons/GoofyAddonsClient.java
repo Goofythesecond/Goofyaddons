@@ -25,6 +25,8 @@ public class GoofyAddonsClient implements ClientModInitializer {
             boolean keyDown1 = InputConstants.isKeyDown(minecraft.getWindow(), GoofyConfig.INSTANCE.stopKey);
             if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_P)) bazaarFlipper.debugMode = true;
 
+            if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_BACKSLASH)) GoofyConfig.save();
+
             if (keyDown) bazaarFlipper.start();
             if (keyDown1) bazaarFlipper.stop();
 
