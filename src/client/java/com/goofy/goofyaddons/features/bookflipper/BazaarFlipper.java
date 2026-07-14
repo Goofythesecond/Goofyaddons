@@ -100,6 +100,7 @@ public class BazaarFlipper {
     public BazaarFlipper() {
         ChatHook.onMessage("filled", this::handleFilledMessage);
         ChatHook.onMessage("Claimed", this::handleClaimedMessage);
+        ChatHook.onMessage("Bought", this::handleBoughtMessage);
     }
 
     public void stop() {
@@ -244,8 +245,10 @@ public class BazaarFlipper {
 
                 if (containerCheck(activeBook.name())) clock.start(randomizer());
                 if (containerCheck(activeBook.name()) && clock.shouldFire()) {
-                    debug("BAZAAR_NAVIGATION: book container open, clicking slot 15");
-                    InventoryUtils.clickSlot(15, false);
+                    // Slot 10 = Insta-Buy, slot 15 = Create Buy Order
+                    int buySlot = GoofyConfig.INSTANCE.instantMode ? 10 : 15;
+                    debug("BAZAAR_NAVIGATION: book container open, clicking slot " + buySlot);
+                    InventoryUtils.clickSlot(buySlot, false);
                 }
 
                 if (containerCheck("How many do you want")) clock.start(randomizer());
@@ -257,6 +260,13 @@ public class BazaarFlipper {
                 if (minecraft.screen instanceof SignEditScreen && clock.shouldFire()) {
                     debug("BAZAAR_NAVIGATION: sign screen detected, handling sign");
                     handleSign();
+                    if (GoofyConfig.INSTANCE.instantMode) {
+                        // Insta-Buy executes right after the amount sign; there is no price
+                        // or confirm screen. The "Bought" chat message moves the book onward.
+                        debug("BAZAAR_NAVIGATION: instant mode, waiting for Bought message");
+                        editStateBook(activeBook, BookState.BUY_ORDER);
+                        state = State.IDLE;
+                    }
                 }
 
                 if (containerCheck("How much do you want to pay")) clock.start(randomizer());
@@ -498,6 +508,36 @@ public class BazaarFlipper {
                     state = State.FETCHING;
                     return;
                 }
+
+                if (GoofyConfig.INSTANCE.instantMode) {
+                    Book bookToSell = bookList.getFirst();
+
+                    if (!isContainerOpen()) clock.start(randomizer());
+                    if (!isContainerOpen() && clock.shouldFire()) {
+                        debug("SELL: instant mode, opening bazaar for " + bookToSell.name());
+                        openBazaar(bookToSell.name().replace("Ultimate", ""));
+                    }
+
+                    if (containerCheck("Bazaar")) clock.start(randomizer());
+                    if (containerCheck("Bazaar") && clock.shouldFire()) {
+                        List<Integer> slot = inventoryScanner.findContainer(bookToSell.getRomanLevel(bookToSell.sellLevel()));
+                        debug("SELL: instant mode, clicking product " + slot);
+                        if (slot.isEmpty()) return;
+                        InventoryUtils.clickSlot(slot.getFirst(), false);
+                    }
+
+                    if (containerCheck(bookToSell.name())) clock.start(randomizer());
+                    if (containerCheck(bookToSell.name()) && clock.shouldFire()) {
+                        // Slot 11 = Insta-Sell, sells every matching book in the inventory at once
+                        debug("SELL: instant mode, clicking slot 11 to insta-sell " + bookToSell.name());
+                        InventoryUtils.clickSlot(11, false);
+                        removeDuplicateBooks(task);
+                        if (task.containsKey(bookToSell)) task.remove(bookToSell);
+                        minecraft.player.closeContainer();
+                    }
+                    return;
+                }
+
                 if (!isContainerOpen()) clock.start(randomizer());
                 if (!isContainerOpen() && clock.shouldFire()) {
                     debug("SELL: no container, opening bazaar for tomato");
@@ -781,6 +821,36 @@ public class BazaarFlipper {
         }
     }
 
+
+    private void handleBoughtMessage(String string) {
+        if (!GoofyConfig.INSTANCE.instantMode) return;
+
+        List<Book> booksInState = new ArrayList<>();
+        booksInState.addAll(booksInState(BookState.BUY_ORDER));
+
+        // "[Bazaar] Bought 16x Ultimate Wise I for 123,456 coins!"
+        String stripped = string.replace("[Bazaar] Bought ", "");
+        if (stripped.contains(" for ")) stripped = stripped.substring(0, stripped.indexOf(" for "));
+
+        int amount;
+        try {
+            amount = Integer.parseInt(stripped.substring(0, stripped.indexOf('x')));
+        } catch (Exception e) {
+            ChatUtils.debugMessage("BazaarFlipper: handleBoughtMessage: could not parse amount from " + stripped);
+            return;
+        }
+
+        stripped = stripped.substring(stripped.indexOf(' ') + 1);
+
+        ChatUtils.debugMessage("BazaarFlipper: handleBoughtMessage: stripped=" + stripped + " amount=" + amount);
+
+        for (Book book : booksInState) {
+            if (!stripped.equals(book.getRomanLevel(book.level()))) continue;
+            // Items are already in the inventory, no claiming needed - straight to combining
+            task.get(book).addInInventory(amount);
+            editStateBook(book, BookState.ANVIL);
+        }
+    }
 
     private void handleFilledMessage(String string) {
         List<Book> booksInState = new ArrayList<>();

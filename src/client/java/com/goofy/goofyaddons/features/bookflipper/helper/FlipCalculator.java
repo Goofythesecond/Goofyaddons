@@ -78,8 +78,12 @@ public class FlipCalculator {
 
             int qty = book.getQtyAmount(book.level());
 
-            double cost = buyData.sellPrice() * qty;
-            double revenue = sellData.buyPrice();
+            // Order mode buys at the top buy-order price (sellPrice) and sells at the top
+            // sell-offer price (buyPrice). Instant mode pays the instant-buy price (buyPrice)
+            // and receives the instant-sell price (sellPrice), so both sides of the spread apply.
+            boolean instant = GoofyConfig.INSTANCE.instantMode;
+            double cost = (instant ? buyData.buyPrice() : buyData.sellPrice()) * qty;
+            double revenue = instant ? sellData.sellPrice() : sellData.buyPrice();
 
             double profit = revenue - cost;
 
