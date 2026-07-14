@@ -37,6 +37,11 @@ public class GoofyConfig {
     public int minActionDelay = 100;
     public int maxActionDelay = 500;
 
+    // When true, uses Insta-Buy/Insta-Sell instead of buy orders and sell offers.
+    // Faster cycles (no waiting for orders to fill), but pays the bazaar spread twice,
+    // so profit per flip is lower. FlipCalculator prices flips accordingly.
+    public boolean instantMode = false;
+
 
     public static void load() {
         try {
