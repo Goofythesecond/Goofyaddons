@@ -499,12 +499,16 @@ public class BazaarFlipper {
                         return;
                     }
 
+
                     List<Integer> book = inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(level));
 
                     if (!book.isEmpty()) {
                         counter++;
                         InventoryUtils.clickSlot(book.getFirst(), true);
                         return;
+                    } else {
+                        List<Integer> bookInContainer = inventoryScanner.findLoreContainer(bookToHandle.getRomanLevel(level));
+                        if (bookInContainer.size() >= 2) counter++;
                     }
                 }
 
