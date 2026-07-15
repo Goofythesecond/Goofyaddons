@@ -1,30 +1,300 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+name: Build, Release & Notify Discord
 
-name: build
-on: [pull_request, push]
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA to run against (optional).'
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  notify-discord:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
-      - name: setup jdk
-        uses: actions/setup-java@v5
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
+          fetch-depth: 0
+          ref: ${{ inputs.sha || github.sha }}
+
+      - name: Prepare Data
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          HEAD_SHA="$(git rev-parse HEAD)"
+          echo "HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+          echo "COMMIT_URL=https://github.com/${GITHUB_REPOSITORY}/commit/${HEAD_SHA}" >> "$GITHUB_ENV"
+          echo "TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
+          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> "$GITHUB_ENV"
+          echo "REPO_FULL=${GITHUB_REPOSITORY}" >> "$GITHUB_ENV"
+          echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_ENV"
+          
+          ACTOR="$(git log -1 --pretty=%an)"
+          echo "DISCORD_AUTHOR=${ACTOR}" >> "$GITHUB_ENV"
+          
+          BASE_SHA="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "4b825dc642cb6eb9a060e54bf8d69288fbee4904")"
+          
+          STATS="$(git diff --shortstat "$BASE_SHA" "$HEAD_SHA" || echo "0 files changed")"
+          echo "STATS_TEXT=$STATS" >> "$GITHUB_ENV"
+          
+          EXT_LIST="$(
+            git diff --name-only "$BASE_SHA" "$HEAD_SHA" | awk '
+              {
+                f=$0
+                n=split(f,a,"/")
+                b=a[n]
+                if (index(b,".")==0) ext="noext"
+                else { ext=b; sub(/^.*\./,"",ext) }
+                print ext
+              }
+            ' | sort | uniq -c | sort -nr | head -n 10 \
+              | awk '{print $2 " (" $1 ")"}' \
+              | paste -sd ", " -
+          )"
+          [[ -z "${EXT_LIST:-}" ]] && EXT_LIST="No specific types"
+          EXT_LIST="${EXT_LIST:0:1024}"
+          echo "FILE_TYPES=$EXT_LIST" >> "$GITHUB_ENV"
+
+      - name: Send to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          COMMIT_MSG="$(git log -1 --pretty=%B)"
+          export CHUNK_LIMIT=3500
+          export COMMIT_MSG
+          
+          mapfile -d '' MSG_CHUNKS < <(
+            python3 - << 'PY'
+          import os
+          import sys
+          
+          s = os.environ.get("COMMIT_MSG", "")
+          limit = int(os.environ.get("CHUNK_LIMIT", "3500"))
+          
+          if not s:
+              sys.stdout.write("No commit message.\0")
+              sys.exit(0)
+          
+          start = 0
+          s_len = len(s)
+          
+          while start < s_len:
+              end = start + limit
+              if end >= s_len:
+                  sys.stdout.write(s[start:] + '\0')
+                  break
+          
+              chunk = s[start:end]
+              last_newline = chunk.rfind('\n')
+          
+              if last_newline != -1:
+                  cut_point = last_newline + 1
+              else:
+                  cut_point = limit
+          
+              sys.stdout.write(chunk[:cut_point] + '\0')
+              start += cut_point
+          PY
+          )
+          
+          if [[ "${#MSG_CHUNKS[@]}" -eq 0 ]]; then
+            MSG_CHUNKS=("No commit message.")
+          fi
+          
+          TOTAL="${#MSG_CHUNKS[@]}"
+          
+          FIRST_MSG="${MSG_CHUNKS[0]}"
+          
+          PAYLOAD="$(jq -cn \
+            --arg msg "$FIRST_MSG" \
+            --arg url "$COMMIT_URL" \
+            --arg author "$DISCORD_AUTHOR" \
+            --arg branch "$BRANCH" \
+            --arg time "$TIMESTAMP" \
+            --arg stats "$STATS_TEXT" \
+            --arg types "$FILE_TYPES" \
+            --arg repo "$REPO_NAME" \
+            --arg repofull "$REPO_FULL" \
+            --arg idx "1" \
+            --arg total "$TOTAL" \
+            '{
+              username: ($repo + " Commits"),
+              avatar_url: "https://i.pinimg.com/736x/54/2b/f6/542bf67ce014abc64a0e858359e48f18.jpg",
+              embeds: [{
+                title: ("[" + $repo + "] New Commit" + (if ($total|tonumber) > 1 then " (" + $idx + "/" + $total + ")" else "" end)),
+                description: ("📝 **Summary**\n" + $msg + "\n\n[View Commit](" + $url + ")"),
+                color: 3447003,
+                timestamp: $time,
+                fields: [
+                  {name: "Repository", value: $repofull, inline: true},
+                  {name: "Author", value: $author, inline: true},
+                  {name: "Branch", value: $branch, inline: true},
+                  {name: "📊 Changes", value: $stats, inline: false},
+                  {name: "📂 File Types", value: $types, inline: false}
+                ]
+              }]
+            }'
+          )"
+          
+          curl -sS --fail-with-body \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK"
+          
+          for ((i = 1; i < TOTAL; i++)); do
+            PART="${MSG_CHUNKS[$i]}"
+            IDX="$((i+1))"
+          
+            CONT_PAYLOAD="$(jq -cn \
+              --arg msg "$PART" \
+              --arg url "$COMMIT_URL" \
+              --arg time "$TIMESTAMP" \
+              --arg repo "$REPO_NAME" \
+              --arg repofull "$REPO_FULL" \
+              --arg idx "$IDX" \
+              --arg total "$TOTAL" \
+              '{
+                username: ($repo + " Commits"),
+                avatar_url: "https://i.pinimg.com/736x/54/2b/f6/542bf67ce014abc64a0e858359e48f18.jpg",
+                embeds: [{
+                  title: ("[" + $repo + "] New Commit (continued " + $idx + "/" + $total + ")"),
+                  description: ($msg + "\n\n[View Commit](" + $url + ")"),
+                  color: 3447003,
+                  timestamp: $time,
+                  fields: [
+                    {name: "Repository", value: $repofull, inline: true}
+                  ]
+                }]
+              }'
+            )"
+          
+            curl -sS --fail-with-body \
+              -H "Content-Type: application/json" \
+              -d "$CONT_PAYLOAD" \
+              "$WEBHOOK"
+          done
+
+  build-release:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.version }}-${{ steps.sha.outputs.short }}
+      release_url: ${{ steps.create_release.outputs.url }}
+      assets: ${{ steps.create_release.outputs.assets }}
+      commit_sha: ${{ steps.sha.outputs.full }}
+      commit_url: ${{ steps.sha.outputs.url }}
+      commit_msg: ${{ steps.commit_msg.outputs.msg }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
           java-version: '25'
-          distribution: 'microsoft'
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
-      - name: build
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Read mod version
+        id: version
+        run: |
+          VERSION=$(grep "^mod_version=" gradle.properties | cut -d'=' -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Get short commit SHA
+        id: sha
+        run: |
+          echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "full=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "url=https://github.com/${GITHUB_REPOSITORY}/commit/$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Get commit message
+        id: commit_msg
+        run: |
+          {
+            echo "msg<<EOF"
+            git log -1 --pretty=%B
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Build
         run: ./gradlew build
-      - name: capture build artifacts
-        uses: actions/upload-artifact@v7
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Artifacts
-          path: build/libs/
+          tag_name: ${{ steps.version.outputs.version }}-${{ steps.sha.outputs.short }}
+          name: GoofyAddons ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            build/libs/*.jar
+
+  notify-discord-release:
+    needs: build-release
+    if: needs.build-release.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Release to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_2 }}
+          RELEASE_TAG: ${{ needs.build-release.outputs.tag }}
+          RELEASE_URL: ${{ needs.build-release.outputs.release_url }}
+          RELEASE_ASSETS: ${{ needs.build-release.outputs.assets }}
+          COMMIT_SHA: ${{ needs.build-release.outputs.commit_sha }}
+          COMMIT_URL: ${{ needs.build-release.outputs.commit_url }}
+          COMMIT_MSG: ${{ needs.build-release.outputs.commit_msg }}
+          REPO_FULL: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          REPO_NAME="${REPO_FULL#*/}"
+          TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          
+          ASSETS_LIST="$(echo "$RELEASE_ASSETS" | jq -r '.[] | "[\(.name)](\(.browser_download_url))"' | paste -sd $'\n' - 2>/dev/null || true)"
+          [[ -z "$ASSETS_LIST" ]] && ASSETS_LIST="No assets attached"
+          
+          COMMIT_SHORT="${COMMIT_SHA:0:7}"
+          COMMIT_MSG_TRUNC="${COMMIT_MSG:0:300}"
+          
+          PAYLOAD="$(jq -cn \
+            --arg tag "$RELEASE_TAG" \
+            --arg url "$RELEASE_URL" \
+            --arg assets "$ASSETS_LIST" \
+            --arg time "$TIMESTAMP" \
+            --arg repo "$REPO_NAME" \
+            --arg repofull "$REPO_FULL" \
+            --arg commiturl "$COMMIT_URL" \
+            --arg commitshort "$COMMIT_SHORT" \
+            --arg commitmsg "$COMMIT_MSG_TRUNC" \
+            '{
+              username: ($repo + " Releases"),
+              avatar_url: "https://i.pinimg.com/736x/54/2b/f6/542bf67ce014abc64a0e858359e48f18.jpg",
+              embeds: [{
+                title: ("🚀 [" + $repo + "] New Release: " + $tag),
+                description: ("[View Release](" + $url + ")"),
+                color: 3066993,
+                timestamp: $time,
+                fields: [
+                  {name: "Repository", value: $repofull, inline: true},
+                  {name: "Tag", value: $tag, inline: true},
+                  {name: "📦 Assets", value: $assets, inline: false},
+                  {name: "📝 Commit", value: ("[`" + $commitshort + "`](" + $commiturl + ") " + $commitmsg), inline: false}
+                ]
+              }]
+            }'
+          )"
+          
+          curl -sS --fail-with-body \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK"
