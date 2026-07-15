@@ -66,6 +66,7 @@ public class BazaarFlipper {
     private boolean didReceiveItems = false;
     public boolean debugMode = false;
     private boolean firstStartUp = false;
+    private int counterBazaar = 0;
 
 
     private final Map<Book, Task> task = new LinkedHashMap<>();
@@ -203,6 +204,7 @@ public class BazaarFlipper {
                     didRemoveOrder = false;
                     didReceiveItems = false;
                     claimedItems = false;
+                    counterBazaar = 0;
                     return;
                 }
 
@@ -352,10 +354,15 @@ public class BazaarFlipper {
                     debug("found " + slots.size() + " slots for " + bookToHandle);
 
                     if (slots.isEmpty()) {
-                        if (!task.get(bookToHandle).isCompleted() && !didRemoveOrder) return;
+                        if (!task.get(bookToHandle).isCompleted() && !didRemoveOrder && counterBazaar < 3) {
+                            counterBazaar++;
+                            return;
+                        }
+
+
                         editStateBook(bookToHandle, task.get(bookToHandle).isCompleted() ? BookState.ANVIL : BookState.SELECTED);
                         didRemoveOrder = false;
-
+                        counterBazaar = 0;
                         return;
 
                     }
