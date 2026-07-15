@@ -120,6 +120,7 @@ public class BazaarFlipper {
         clickedOnce = false;
         clock.stop();
         bazaarMonitor.stop();
+        bazaarMonitor.reset();
         isInventoryFull = false;
         didRemoveOrder = false;
 
