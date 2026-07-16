@@ -157,12 +157,24 @@ public class BazaarFlipper {
 
                     for (Book book : bookList) {
                         debug("BazaarFlipper: [STARTUP_CHECK] book: " + book.name());
-                        List<Integer> size = inventoryScanner.locate(book.getRomanLevel(book.level()));
-                        debug("BazaarFlipper: [STARTUP_CHECK] Found book: " + book.name() + " Amount: " + size.size());
-
+                        List<Integer> size = inventoryScanner.findLoreContainer(book.getRomanLevel(book.level()));
+                        debug("BazaarFlipper: [STARTUP_CHECK] Found book: " + book.name() + " Amount: " + size.size() + "In Container");
                         task.get(book).addInEnderChest(size.size());
+                        size = inventoryScanner.findLoreInv(book.getRomanLevel(book.level()));
+                        debug("BazaarFlipper: [STARTUP_CHECK] Found book: " + book.name() + " Amount: " + size.size() + "In Inventory");
+                        task.get(book).addInInventory(size.size());
 
-                        if (task.get(book).getAmountToOrder() == 0) editStateBook(book, BookState.ANVIL);
+
+
+                        if (task.get(book).getAmountToOrder() == 0) {
+                            editStateBook(book, BookState.ANVIL);
+                            continue;
+                        }
+
+                        if (task.get(book).shouldStore()) {
+                            editStateBook(book, BookState.STORE);
+                            task.get(book).setEarlyStore(true);
+                        }
                     }
 
                     debug("BazaarFlipper: [STARTUP_CHECK] Switching to IDLE, firstStartup = false");
@@ -429,6 +441,12 @@ public class BazaarFlipper {
                         if (task.get(bookToHandle).isEarlyAction()) {
                             editStateBook(bookToHandle, BookState.OUTBID);
                             task.get(bookToHandle).setEarlyAction(false);
+                            return;
+                        }
+
+                        if (task.get(bookToHandle).isEarlyStore()) {
+                            editStateBook(bookToHandle, BookState.SELECTED);
+                            task.get(bookToHandle).setEarlyStore(false);
                             return;
                         }
 
@@ -884,11 +902,13 @@ public class BazaarFlipper {
         private int inEnderChest;
         private int inInventory;
         private boolean earlyAction = false;
-        public boolean isEarlyAction() {
+        private boolean earlyStore = false;
+
+        private boolean isEarlyAction() {
             return earlyAction;
         }
 
-        public void setEarlyAction(boolean earlyAction) {
+        private void setEarlyAction(boolean earlyAction) {
             this.earlyAction = earlyAction;
         }
 
@@ -924,5 +944,12 @@ public class BazaarFlipper {
 
         private boolean shouldStore() { return inInventory > 0; }
 
+        private boolean isEarlyStore() {
+            return earlyStore;
+        }
+
+        private void setEarlyStore(boolean earlyStore) {
+            this.earlyStore = earlyStore;
+        }
     }
 }
