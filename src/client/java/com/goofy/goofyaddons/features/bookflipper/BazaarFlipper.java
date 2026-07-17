@@ -166,7 +166,7 @@ public class BazaarFlipper {
 
 
 
-                        if (task.get(book).getAmountToOrder() == 0) {
+                        if (task.get(book).isCompleted()) {
                             editStateBook(book, BookState.ANVIL);
                             continue;
                         }
@@ -483,7 +483,7 @@ public class BazaarFlipper {
                     }
 
                     debug("found " + slots.size() + " book slots in ender chest");
-                    if (slots.isEmpty()) {
+                    if (slots.isEmpty() || task.get(bookToHandle).inInventory == bookToHandle.getQtyAmount(bookToHandle.level())) {
                         editStateBook(bookToHandle, BookState.COMBINE);
                         return;
                     }
@@ -621,6 +621,11 @@ public class BazaarFlipper {
                 if (containerCheck("Confirm") && clock.shouldFire()) {
                     debug("confirm prompt, clicking slot 13 and removing " + bookList.getFirst() + " from sell list");
                     InventoryUtils.clickSlot(13, false);
+                    if (task.get(bookList.getFirst()).getAmountToOrder() < 0) {
+                        task.get(bookList.getFirst()).addInInventory(-bookList.getFirst().getQtyAmount(bookList.getFirst().level()));
+                        editStateBook(bookList.getFirst(), BookState.SELECTED);
+                        return;
+                    }
                     removeDuplicateBooks(task);
                     if (task.containsKey(bookList.getFirst())) task.remove(bookList.getFirst());
                     bookList.removeFirst();
@@ -940,7 +945,7 @@ public class BazaarFlipper {
             return inEnderChest > 0;
         }
 
-        private boolean isCompleted() { return getAmountToOrder() == 0; }
+        private boolean isCompleted() { return getAmountToOrder() <= 0; }
 
         private boolean shouldStore() { return inInventory > 0; }
 
