@@ -67,6 +67,8 @@ public class BazaarFlipper {
     public boolean debugMode = false;
     private boolean firstStartUp = false;
     private int counterBazaar = 0;
+    private boolean useSecondPage = false;
+    private boolean secondPageCheck = false;
 
 
     private final Map<Book, Task> task = new LinkedHashMap<>();
@@ -124,6 +126,8 @@ public class BazaarFlipper {
         bazaarMonitor.reset();
         isInventoryFull = false;
         didRemoveOrder = false;
+        useSecondPage = false;
+        secondPageCheck = false;
 
     }
 
@@ -146,8 +150,12 @@ public class BazaarFlipper {
             case STARTUP_CHECK -> {
                 if (!isContainerOpen()) clock.start(randomizer());
                 if (!isContainerOpen() && clock.shouldFire()) {
-                    openEnderChest();
                     ChatUtils.clientMessage("BazaarFlipper: [STARTUP_CHECK] Started checks");
+                    if (secondPageCheck) {
+                        openEnderChest(true);
+                        return;
+                    }
+                    openEnderChest(false);
                 }
 
                 if (containerCheck("Ender")) clock.start(randomizer());
@@ -160,9 +168,13 @@ public class BazaarFlipper {
                         List<Integer> size = inventoryScanner.findLoreContainer(book.getRomanLevel(book.level()));
                         debug("BazaarFlipper: [STARTUP_CHECK] Found book: " + book.name() + " Amount: " + size.size() + "In Container");
                         task.get(book).addInEnderChest(size.size());
-                        size = inventoryScanner.findLoreInv(book.getRomanLevel(book.level()));
-                        debug("BazaarFlipper: [STARTUP_CHECK] Found book: " + book.name() + " Amount: " + size.size() + "In Inventory");
-                        task.get(book).addInInventory(size.size());
+                        if (!secondPageCheck) {
+                            size = inventoryScanner.findLoreInv(book.getRomanLevel(book.level()));
+                            debug("BazaarFlipper: [STARTUP_CHECK] Found book: " + book.name() + " Amount: " + size.size() + "In Inventory");
+                            task.get(book).addInInventory(size.size());
+                        } else {
+                            task.get(book).setShouldCheckSecondPage(true);
+                        }
 
 
 
@@ -177,9 +189,14 @@ public class BazaarFlipper {
                         }
                     }
 
-                    debug("BazaarFlipper: [STARTUP_CHECK] Switching to IDLE, firstStartup = false");
-                    firstStartUp = false;
-                    state = State.IDLE;
+                    if (secondPageCheck) {
+                        debug("BazaarFlipper: [STARTUP_CHECK] Switching to IDLE, firstStartup = false");
+                        firstStartUp = false;
+                        state = State.IDLE;
+                        minecraft.player.closeContainer();
+                        return;
+                    }
+                    secondPageCheck = true;
                     minecraft.player.closeContainer();
 
                 }
@@ -416,7 +433,12 @@ public class BazaarFlipper {
                 if (!isContainerOpen()) clock.start(randomizer());
                 if (!isContainerOpen() && clock.shouldFire()) {
                     debug("no container, opening ender chest");
-                    openEnderChest();
+                    if (useSecondPage) {
+                        openEnderChest(true);
+                        return;
+                    }
+                    openEnderChest(false);
+
                 }
 
                 if (containerCheck("Ender Chest")) clock.start(speedMode());
@@ -429,9 +451,16 @@ public class BazaarFlipper {
                         return;
                     }
 
+
                     List<Integer> slots = new ArrayList<>();
                     slots.addAll(inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(bookToHandle.level())));
                     if (!slots.isEmpty()) {
+                        if (inventoryScanner.getEmptyContainerSlots() == 0) {
+                            useSecondPage = true;
+                            task.get(bookToHandle).setShouldCheckSecondPage(true);
+                            return;
+                        }
+
                         InventoryUtils.clickSlot(slots.getFirst(), true);
                         debug("storing " + bookToHandle.name() + " at slot " + slots.getFirst());
                         task.get(bookToHandle).addInInventory(-1);
@@ -457,22 +486,28 @@ public class BazaarFlipper {
             }
 
             case ANVIL -> {
+                Book bookToHandle = firstBookInState(BookState.ANVIL);
+
+                if (bookToHandle == null) {
+                    minecraft.player.closeContainer();
+                    state = State.COMBINE;
+                    return;
+                }
+
                 if (!containerCheck("Ender Chest")) clock.start(randomizer());
                 if (!containerCheck("Ender Chest") && clock.shouldFire()) {
                     debug("no ender chest, opening it");
-                    openEnderChest();
+                    if (task.get(bookToHandle).isShouldCheckSecondPage()) {
+                        openEnderChest(true);
+                        return;
+                    }
+                    openEnderChest(false);
+
                 }
 
                 if (containerCheck("Ender Chest")) clock.start(speedMode());
                 if (containerCheck("Ender Chest") && clock.shouldFire()) {
                     List<Integer> slots = new ArrayList<>();
-                    Book bookToHandle = firstBookInState(BookState.ANVIL);
-
-                    if (bookToHandle == null) {
-                        minecraft.player.closeContainer();
-                        state = State.COMBINE;
-                        return;
-                    }
 
                     slots.addAll(inventoryScanner.findLoreContainer(bookToHandle.getRomanLevel(bookToHandle.level())));
 
@@ -483,6 +518,12 @@ public class BazaarFlipper {
                     }
 
                     debug("found " + slots.size() + " book slots in ender chest");
+                    if (slots.isEmpty() && task.get(bookToHandle).isShouldCheckSecondPage() && !(task.get(bookToHandle).inInventory == bookToHandle.getQtyAmount(bookToHandle.level()))) {
+                        minecraft.player.closeContainer();
+                        task.get(bookToHandle).setShouldCheckSecondPage(false);
+                        return;
+                    }
+
                     if (slots.isEmpty() || task.get(bookToHandle).inInventory == bookToHandle.getQtyAmount(bookToHandle.level())) {
                         editStateBook(bookToHandle, BookState.COMBINE);
                         return;
@@ -820,9 +861,13 @@ public class BazaarFlipper {
         minecraft.player.connection.sendCommand("Anvil");
     }
 
-    private void openEnderChest() {
+    private void openEnderChest(boolean useSecondPage) {
         if (containerCheck("Ender Chest")) return;
         debug("openEnderChest");
+        if (useSecondPage) {
+            minecraft.player.connection.sendCommand("ec 2");
+            return;
+        }
         minecraft.player.connection.sendCommand("ec");
     }
 
@@ -907,8 +952,17 @@ public class BazaarFlipper {
         private int amountToOrder;
         private int inEnderChest;
         private int inInventory;
+        private boolean shouldCheckSecondPage = false;
         private boolean earlyAction = false;
         private boolean earlyStore = false;
+
+        private boolean isShouldCheckSecondPage() {
+            return shouldCheckSecondPage;
+        }
+
+        private void setShouldCheckSecondPage(boolean shouldCheckSecondPage) {
+            this.shouldCheckSecondPage = shouldCheckSecondPage;
+        }
 
         private boolean isEarlyAction() {
             return earlyAction;
