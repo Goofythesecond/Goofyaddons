@@ -424,8 +424,11 @@ public class BazaarFlipper {
                 if (containerCheck("Order")) clock.start(randomizer());
                 if (containerCheck("Order") && clock.shouldFire()) {
                     didRemoveOrder = true;
-                    debug("Order screen open, clicking slot 11");
-                    InventoryUtils.clickSlot(11, false);
+                    List<Integer> slot = inventoryScanner.findContainer("Cancel Order");
+                    if (slot.isEmpty()) return;
+                    debug("Order screen open, clicking slot " + slot.getFirst());
+                    InventoryUtils.clickSlot(slot.getFirst(), false);
+
                 }
             }
 
@@ -642,8 +645,10 @@ public class BazaarFlipper {
 
                 if (containerCheck("Order")) clock.start(randomizer());
                 if (containerCheck("Order") && clock.shouldFire()) {
-                    debug("Order screen, clicking slot 13");
-                    InventoryUtils.clickSlot(13, false);
+                    List<Integer> slot = inventoryScanner.findContainer("Cancel Order");
+                    if (slot.isEmpty()) return;
+                    debug("Order screen open, clicking slot " + slot.getFirst());
+                    InventoryUtils.clickSlot(slot.getFirst(), false);
                 }
 
                 if (!bookList.isEmpty() && containerCheck(bookList.getFirst().name())) clock.start(randomizer());
@@ -717,8 +722,10 @@ public class BazaarFlipper {
 
                 if (containerCheck("Order")) clock.start(randomizer());
                 if (containerCheck("Order") && clock.shouldFire()) {
-                    debug("Order screen, clicking slot 13");
-                    InventoryUtils.clickSlot(13, false);
+                    List<Integer> slot = inventoryScanner.findContainer("Cancel Order");
+                    if (slot.isEmpty()) return;
+                    debug("Order screen open, clicking slot " + slot.getFirst());
+                    InventoryUtils.clickSlot(slot.getFirst(), false);
                 }
 
                 if (!sellOrderName.isEmpty() && containerCheck(sellOrderName.getFirst())) clock.start(randomizer());
