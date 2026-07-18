@@ -236,6 +236,38 @@ jobs:
           generate_release_notes: true
           files: |
             build/libs/*.jar
+      - name: Upload Source Jar to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_2 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCES_JAR="$(find build/libs -maxdepth 1 -name '*-sources.jar' | head -n 1)"
+
+          if [[ -z "$SOURCES_JAR" ]]; then
+            echo "No sources jar found in build/libs — skipping Discord upload."
+            echo "(Make sure your build.gradle has 'java { withSourcesJar() }' so the sources jar actually gets built.)"
+            exit 0
+          fi
+
+          JAR_NAME="$(basename "$SOURCES_JAR")"
+
+          PAYLOAD_JSON="$(jq -cn \
+            --arg repo "${GITHUB_REPOSITORY#*/}" \
+            --arg tag "${{ steps.version.outputs.version }}-${{ steps.sha.outputs.short }}" \
+            --arg name "$JAR_NAME" \
+            '{
+              username: ($repo + " Releases"),
+              avatar_url: "https://i.pinimg.com/736x/54/2b/f6/542bf67ce014abc64a0e858359e48f18.jpg",
+              content: ("📦 Source jar for **" + $tag + "** — `" + $name + "`")
+            }'
+          )"
+
+          curl -sS --fail-with-body \
+            -F "payload_json=${PAYLOAD_JSON};type=application/json" \
+            -F "file1=@${SOURCES_JAR}" \
+            "$WEBHOOK"
 
   notify-discord-release:
     needs: build-release
