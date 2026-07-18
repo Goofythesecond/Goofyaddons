@@ -454,13 +454,13 @@ public class BazaarFlipper {
                         return;
                     }
 
-
                     List<Integer> slots = new ArrayList<>();
                     slots.addAll(inventoryScanner.findLoreInv(bookToHandle.getRomanLevel(bookToHandle.level())));
                     if (!slots.isEmpty()) {
                         if (inventoryScanner.getEmptyContainerSlots() == 0) {
                             useSecondPage = true;
                             task.get(bookToHandle).setShouldCheckSecondPage(true);
+                            minecraft.player.closeContainer();
                             return;
                         }
 
