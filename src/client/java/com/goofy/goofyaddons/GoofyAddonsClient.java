@@ -2,6 +2,7 @@ package com.goofy.goofyaddons;
 
 import com.goofy.goofyaddons.config.GoofyConfig;
 import com.goofy.goofyaddons.event.ChatHook;
+import com.goofy.goofyaddons.failsafes.FailsafeManager;
 import com.goofy.goofyaddons.features.FeatureManager;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
@@ -17,6 +18,7 @@ public class GoofyAddonsClient implements ClientModInitializer {
         ChatHook.register();
         final Minecraft minecraft = Minecraft.getInstance();
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            FailsafeManager.INSTANCE.onTick();
             FeatureManager.INSTANCE.onTick();
 
             boolean keyDown = InputConstants.isKeyDown(minecraft.getWindow(), GoofyConfig.INSTANCE.startKey);

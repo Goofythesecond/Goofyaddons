@@ -5,9 +5,11 @@ import com.goofy.goofyaddons.features.bookflipper.BazaarFlipper;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class FeatureManager {
     List<Feature> featureList = new ArrayList<>();
-    private Feature feature = null;
+    Feature currentFeature = null;
+
 
     public static final FeatureManager INSTANCE = new FeatureManager();
 
@@ -16,28 +18,35 @@ public class FeatureManager {
     }
 
     public void onTick() {
-        if (feature == null) return;
-        feature.onTick();
+        if (currentFeature == null) return;
+        currentFeature.onTick();
     }
 
     public void start(String name) {
-        feature = featureList.stream().filter(feature -> feature.name().equals(name)).findFirst().orElse(null);
-        if (feature == null) return;
-        feature.start();
+        currentFeature = featureList.stream().filter(feature -> feature.name().equals(name)).findFirst().orElse(null);
+        if (currentFeature == null) return;
+        currentFeature.start();
     }
 
     public void stop() {
-        if (feature == null) return;
-        feature.stop();
-        feature = null;
+        if (currentFeature == null) return;
+        currentFeature.stop();
+        currentFeature = null;
     }
 
     public void pause() {
-        feature.pause();
+        if (currentFeature == null) return;
+        currentFeature.pause();
+
     }
 
     public void resume() {
-        feature.resume();
+        if (currentFeature == null) return;
+        currentFeature.resume();
+    }
+
+    public boolean isMacroRunning() {
+        return currentFeature != null;
     }
 
 }
