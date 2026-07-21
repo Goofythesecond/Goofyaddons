@@ -908,10 +908,11 @@ public class BazaarFlipper implements Feature {
     }
 
 
-    private boolean containerCheck(String name) {
-        if (minecraft.screen == null) return false;
-        return minecraft.screen.getTitle().toString().contains(name);
-    }
+private boolean containerCheck(String name) {
+    if (minecraft.screen == null) return false;
+    String title = minecraft.screen.getTitle().getString();
+    return title.toLowerCase().contains(name.toLowerCase());
+}
 
     private boolean isContainerOpen() {
         if (minecraft.screen == null) return false;
