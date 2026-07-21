@@ -458,8 +458,8 @@ public class BazaarFlipper implements Feature {
 
                 }
 
-                if (containerCheck("Ender Chest")) clock.start(speedMode());
-                if (containerCheck("Ender Chest") && clock.shouldFire()) {
+                    if (containerCheck("Ender Chest") || containerCheck("Jumbo Backpack") || containerCheck("Greater Backpack")) clock.start(speedMode());
+                    if ((containerCheck("Ender Chest") || containerCheck("Jumbo Backpack") || containerCheck("Greater Backpack")) && clock.shouldFire()) {
                     Book bookToHandle = firstBookInState(BookState.STORE);
 
                     if (bookToHandle == null) {
@@ -511,8 +511,8 @@ public class BazaarFlipper implements Feature {
                     return;
                 }
 
-                if (!containerCheck("Ender Chest")) clock.start(randomizer());
-                if (!containerCheck("Ender Chest") && clock.shouldFire()) {
+                if (!containerCheck("Ender Chest") && !containerCheck("Jumbo Backpack") && !containerCheck("Greater Backpack")) clock.start(randomizer());
+                if (!containerCheck("Ender Chest") && !containerCheck("Jumbo Backpack") && !containerCheck("Greater Backpack") && clock.shouldFire()) {
                     debug("no ender chest, opening it");
                     if (task.get(bookToHandle).isShouldCheckSecondPage()) {
                         openEnderChest(true);
@@ -522,8 +522,8 @@ public class BazaarFlipper implements Feature {
 
                 }
 
-                if (containerCheck("Ender Chest")) clock.start(speedMode());
-                if (containerCheck("Ender Chest") && clock.shouldFire()) {
+                    if (containerCheck("Ender Chest") || containerCheck("Jumbo Backpack") || containerCheck("Greater Backpack")) clock.start(speedMode());
+                    if ((containerCheck("Ender Chest") || containerCheck("Jumbo Backpack") || containerCheck("Greater Backpack")) && clock.shouldFire()) {
                     List<Integer> slots = new ArrayList<>();
 
                     slots.addAll(inventoryScanner.findLoreContainer(bookToHandle.getRomanLevel(bookToHandle.level())));
@@ -881,7 +881,7 @@ public class BazaarFlipper implements Feature {
     }
 
     private void openEnderChest(boolean useSecondPage) {
-        if (containerCheck("Ender Chest")) return;
+        if (containerCheck("Ender Chest") || containerCheck("Jumbo Backpack") || containerCheck("Greater Backpack")) return;
         debug("openEnderChest");
         if (useSecondPage) {
             minecraft.player.connection.sendCommand(GoofyConfig.INSTANCE.secondPage);
