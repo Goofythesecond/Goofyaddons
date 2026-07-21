@@ -909,9 +909,19 @@ public class BazaarFlipper implements Feature {
 
 
 private boolean containerCheck(String name) {
-    if (minecraft.screen == null) return false;
+    if (minecraft.screen == null) {
+        System.out.println("[DEBUG] containerCheck: Screen is null.");
+        return false;
+    }
+    
+    // Get the plain text title
     String title = minecraft.screen.getTitle().getString();
-    return title.toLowerCase().contains(name.toLowerCase());
+    boolean matches = title.toLowerCase().contains(name.toLowerCase());
+    
+    // Print the debug information to the console
+    System.out.println("[DEBUG] Checking container: \"" + name + "\" against GUI title: \"" + title + "\" | Match: " + matches);
+    
+    return matches;
 }
 
     private boolean isContainerOpen() {
