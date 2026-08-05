@@ -4,6 +4,7 @@ import com.goofy.goofyaddons.config.GoofyConfig;
 import com.goofy.goofyaddons.event.ChatHook;
 import com.goofy.goofyaddons.failsafes.FailsafeManager;
 import com.goofy.goofyaddons.features.FeatureManager;
+import com.goofy.goofyaddons.keybinds.GoofyKeybinds;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -16,19 +17,20 @@ public class GoofyAddonsClient implements ClientModInitializer {
     public void onInitializeClient() {
         GoofyConfig.load();
         ChatHook.register();
+        GoofyKeybinds.register();
         final Minecraft minecraft = Minecraft.getInstance();
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             FailsafeManager.INSTANCE.onTick();
             FeatureManager.INSTANCE.onTick();
 
-            boolean keyDown = InputConstants.isKeyDown(minecraft.getWindow(), GoofyConfig.INSTANCE.startKey);
-            boolean keyDown1 = InputConstants.isKeyDown(minecraft.getWindow(), GoofyConfig.INSTANCE.stopKey);
-
             if (InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_BACKSLASH)) GoofyConfig.save();
 
-            if (keyDown && client.screen == null) FeatureManager.INSTANCE.start("BazaarFlipper");
-            if (keyDown1 && client.screen == null) FeatureManager.INSTANCE.stop();
-
+            while (GoofyKeybinds.startKey.consumeClick()) {
+                FeatureManager.INSTANCE.start("BazaarFlipper");
+            }
+            while (GoofyKeybinds.stopKey.consumeClick()) {
+                FeatureManager.INSTANCE.stop();
+            }
         });
     }
 }
