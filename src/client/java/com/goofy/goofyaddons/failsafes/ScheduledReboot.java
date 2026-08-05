@@ -19,6 +19,7 @@ public class ScheduledReboot implements Failsafe {
 
     public ScheduledReboot() {
         ChatHook.onMessage("Scheduled Reboot", this::handleMessage);
+        ChatHook.onMessage("Game Update", this::handleMessage);
     }
 
     @Override
