@@ -245,10 +245,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Find the primary compiled .jar file (excluding sources/dev/javadoc)
           MAIN_JAR="$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' ! -name '*-javadoc.jar' | head -n 1)"
           
-          # Find the corresponding sources .jar file
           SOURCES_JAR="$(find build/libs -maxdepth 1 -name '*-sources.jar' | head -n 1)"
 
           if [[ -z "$MAIN_JAR" ]]; then
@@ -259,7 +257,6 @@ jobs:
           JAR_NAME="$(basename "$MAIN_JAR")"
           TAG="${VERSION}-${SHORT_SHA}"
 
-          # Format the message content based on whether the sources jar was found
           if [[ -n "$SOURCES_JAR" ]]; then
             SOURCES_NAME="$(basename "$SOURCES_JAR")"
             CONTENT_TEXT="📦 Jars for **${TAG}** — \`${JAR_NAME}\` and \`${SOURCES_NAME}\`"
@@ -267,7 +264,6 @@ jobs:
             CONTENT_TEXT="📦 Jar for **${TAG}** — \`${JAR_NAME}\`"
           fi
 
-          # Prepare JSON payload with the updated text
           PAYLOAD_JSON="$(jq -cn \
             --arg repo "${GITHUB_REPOSITORY#*/}" \
             --arg content "$CONTENT_TEXT" \
@@ -278,7 +274,6 @@ jobs:
             }'
           )"
 
-          # Setup curl arguments dynamically with a bash array
           CURL_ARGS=(-sS --fail-with-body -F "payload_json=${PAYLOAD_JSON};type=application/json")
           CURL_ARGS+=(-F "files[0]=@${MAIN_JAR}")
 
@@ -286,7 +281,6 @@ jobs:
             CURL_ARGS+=(-F "files[1]=@${SOURCES_JAR}")
           fi
 
-          # Post to Discord
           curl "${CURL_ARGS[@]}" "$WEBHOOK"
 
   notify-discord-release:
