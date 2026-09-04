@@ -31,6 +31,13 @@ public class GoofyAddonsClient implements ClientModInitializer {
             while (GoofyKeybinds.stopKey.consumeClick()) {
                 FeatureManager.INSTANCE.stop();
             }
+            while (GoofyKeybinds.antiUnderBinKey.consumeClick()) {
+                if (FeatureManager.INSTANCE.isMacroRunning()) {
+                    FeatureManager.INSTANCE.stop();
+                } else {
+                    FeatureManager.INSTANCE.start("AntiUnderBin");
+                }
+            }
         });
     }
 }

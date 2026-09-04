@@ -14,6 +14,7 @@ public class GoofyKeybinds {
 
     public static KeyMapping startKey;
     public static KeyMapping stopKey;
+    public static KeyMapping antiUnderBinKey;
 
     public static void register() {
         startKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -27,6 +28,13 @@ public class GoofyKeybinds {
                 "key.goofyaddons.stop",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_K,
+                CATEGORY
+        ));
+
+        antiUnderBinKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.goofyaddons.antiunderbin",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_L,
                 CATEGORY
         ));
     }

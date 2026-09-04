@@ -139,6 +139,21 @@ public class InventoryScanner {
         return unitPrice;
     }
 
+    public double getSellOrderPrice(int slot) {
+        double unitPrice = 0;
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        ItemStack itemStack = menu.slots.get(slot).getItem();
+        ItemLore itemLore = itemStack.get(DataComponents.LORE);
+        if (itemLore == null) return 0;
+        for (Component line : itemLore.lines()) {
+            String text = line.getString();
+            if (!text.contains("Price per unit:")) continue;
+            String digits = text.replaceAll("[^0-9.]", "");
+            unitPrice = Double.parseDouble(digits);
+        }
+        return unitPrice;
+    }
+
     public int getEmptyInventorySlots() {
         int amount = 0;
         AbstractContainerMenu menu = minecraft.player.containerMenu;

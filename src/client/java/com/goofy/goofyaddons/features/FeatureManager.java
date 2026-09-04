@@ -1,6 +1,7 @@
 package com.goofy.goofyaddons.features;
 
 import com.goofy.goofyaddons.features.bookflipper.BazaarFlipper;
+import com.goofy.goofyaddons.features.bookflipper.AntiUnderBin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ public class FeatureManager {
 
     private FeatureManager() {
         featureList.add(new BazaarFlipper());
+        featureList.add(new AntiUnderBin());
     }
 
     public void onTick() {
