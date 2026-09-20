@@ -1,6 +1,6 @@
 package com.goofy.goofyaddons.features.bookflipper.helper;
 
-public record Book(String id, int level, int sellLevel, String name) {
+public record Book(String id, int level, int sellLevel, String name, double instaSellPercentage, double instaBuyPercentage) {
 
 
     public String getLevel(int i) {

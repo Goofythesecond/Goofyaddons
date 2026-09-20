@@ -1,12 +1,15 @@
 package com.goofy.goofyaddons.features;
 
 import com.goofy.goofyaddons.features.bookflipper.BazaarFlipper;
+import net.minecraft.client.Minecraft;
+
 
 import java.util.ArrayList;
 import java.util.List;
 
 
 public class FeatureManager {
+    Minecraft minecraft = Minecraft.getInstance();
     List<Feature> featureList = new ArrayList<>();
     Feature currentFeature = null;
 
@@ -19,6 +22,10 @@ public class FeatureManager {
 
     public void onTick() {
         if (currentFeature == null) return;
+        if (minecraft.player == null) {
+            currentFeature = null;
+            return;
+        }
         currentFeature.onTick();
     }
 

@@ -25,7 +25,6 @@ public class ChatHook {
         String text = message.getString().replaceAll("§.", "");
         for (HOOK hook : hookList) {
             if (!text.contains(hook.pattern)) continue;
-            System.out.println("Found hook");
             hook.string.accept(text);
         }
     }

@@ -1,16 +1,21 @@
 package com.goofy.goofyaddons.utils;
 
+import com.goofy.goofyaddons.features.bookflipper.helper.Book;
+import com.goofy.goofyaddons.features.bookflipper.helper.Task;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemLore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class InventoryScanner {
     private Minecraft minecraft = Minecraft.getInstance();
@@ -96,17 +101,17 @@ public class InventoryScanner {
         return slots;
     }
 
-    public List<Integer> locate(String string) {
-        List<Integer> slots = new ArrayList<>();
+    public Integer doesItExist(String string, Set<Integer> set) {
         AbstractContainerMenu menu = minecraft.player.containerMenu;
         for (int i = 0; i < menu.slots.size(); i++) {
             ItemStack item = menu.slots.get(i).getItem();
             if (item.isEmpty()) continue;
             ItemLore lore = item.get(DataComponents.LORE);
             if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().equals(string))) continue;
-            slots.add(i);
+            if (set.contains(i)) continue;
+            return i;
         }
-        return slots;
+        return -1;
     }
 
     public int checkOrder(int slot) {
@@ -184,5 +189,49 @@ public class InventoryScanner {
         return false;
     }
 
+    public List<Integer> matchingBookInContainer(Book book) {
+        List<Integer> slots = new ArrayList<>();
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        int end = menu.slots.size() - 36;
+        for (int i = 0; i < end; i++) {
+            ItemStack item = menu.slots.get(i).getItem();
+            if (item.isEmpty()) continue;
+            ItemLore lore = item.get(DataComponents.LORE);
+            if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().contains(book.name()))) continue;
+            slots.add(i);
+        }
+        return slots;
+    }
 
+    public List<Integer> matchingBookInInventory(Book book) {
+        List<Integer> slots = new ArrayList<>();
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        Inventory inventory = minecraft.player.getInventory();
+        for (Slot slot : menu.slots) {
+            if (slot.container != inventory) continue;
+            ItemStack item = slot.getItem();
+            if (item.isEmpty()) continue;
+            ItemLore lore = item.get(DataComponents.LORE);
+            if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().contains(book.name()))) continue;
+            slots.add(slot.index);
+        }
+        return slots;
+    }
+
+    public int getLevel(int slot) {
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        ItemStack itemStack = menu.slots.get(slot).getItem();
+        if (itemStack.isEmpty()) return -1;
+        CustomData customData = itemStack.get(DataComponents.CUSTOM_DATA);
+        if (customData == null) return -1;
+        CompoundTag tag = customData.copyTag().getCompound("enchantments").orElse(null);
+        String id = tag.keySet().iterator().next();
+
+        return tag.getIntOr(id, -1);
+    }
+
+    public boolean isMenuLoaded(int slot) {
+        AbstractContainerMenu menu = minecraft.player.containerMenu;
+        return menu.slots.get(slot).hasItem();
+    }
 }

@@ -8,6 +8,8 @@ public class InventoryUtils {
 
     public static void clickSlot(int slot, boolean shift) {
         Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null) return;
+
         AbstractContainerMenu menu = minecraft.player.containerMenu;
 
         ContainerInput input = shift ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP;

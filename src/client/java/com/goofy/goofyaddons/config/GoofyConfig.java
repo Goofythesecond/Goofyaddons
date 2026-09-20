@@ -16,8 +16,8 @@ public class GoofyConfig {
 
 
     public GoofyConfig() {
-        books.add(new Book("ENCHANTMENT_ULTIMATE_WISE", 1, 5, "Ultimate Wise"));
-        books.add(new Book("ENCHANTMENT_ULTIMATE_WISE", 2, 5, "Ultimate Wise"));
+        books.add(new Book("ENCHANTMENT_ULTIMATE_WISE", 1, 5, "Ultimate Wise", 0, 0));
+        books.add(new Book("ENCHANTMENT_ULTIMATE_WISE", 2, 5, "Ultimate Wise", 0, 0));
         // books.add(new Book("ENCHANTMENT_ULTIMATE_WISDOM", 1, 5, "Wisdom"));
         // books.add(new Book("ENCHANTMENT_ULTIMATE_WISDOM", 2, 5, "Wisdom"));
         // books.add(new Book("ENCHANTMENT_ULTIMATE_LAST_STAND", 1, 5, "Last Stand"));
@@ -31,6 +31,8 @@ public class GoofyConfig {
     public static GoofyConfig INSTANCE;
 
 
+    public int startKey = GLFW.GLFW_KEY_J;
+    public int stopKey = GLFW.GLFW_KEY_K;
     public boolean speedMode = false;
     public int speedModeDelay = 100;
     public int minActionDelay = 100;
@@ -42,10 +44,17 @@ public class GoofyConfig {
     public static void load() {
         try {
             if (Files.exists(CONFIG_PATH)) {
-                INSTANCE = GSON.fromJson(
-                        Files.readString(CONFIG_PATH),
-                        GoofyConfig.class
-                );
+                String json = Files.readString(CONFIG_PATH);
+                GoofyConfig parsed = null;
+                if (!json.isBlank()) {
+                    parsed = GSON.fromJson(json, GoofyConfig.class);
+                }
+                if (parsed == null) {
+                    INSTANCE = new GoofyConfig();
+                    save();
+                } else {
+                    INSTANCE = parsed;
+                }
             } else {
                 INSTANCE = new GoofyConfig();
                 save();
@@ -53,6 +62,7 @@ public class GoofyConfig {
         } catch (Exception e) {
             e.printStackTrace();
             INSTANCE = new GoofyConfig();
+            save();
         }
     }
 
