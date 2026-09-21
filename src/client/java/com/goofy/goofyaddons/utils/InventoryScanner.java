@@ -1,7 +1,6 @@
 package com.goofy.goofyaddons.utils;
 
 import com.goofy.goofyaddons.features.bookflipper.helper.Book;
-import com.goofy.goofyaddons.features.bookflipper.helper.Task;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -15,7 +14,6 @@ import net.minecraft.world.item.component.ItemLore;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class InventoryScanner {
     private Minecraft minecraft = Minecraft.getInstance();
@@ -99,19 +97,6 @@ public class InventoryScanner {
             slots.add(i);
         }
         return slots;
-    }
-
-    public Integer doesItExist(String string, Set<Integer> set) {
-        AbstractContainerMenu menu = minecraft.player.containerMenu;
-        for (int i = 0; i < menu.slots.size(); i++) {
-            ItemStack item = menu.slots.get(i).getItem();
-            if (item.isEmpty()) continue;
-            ItemLore lore = item.get(DataComponents.LORE);
-            if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().equals(string))) continue;
-            if (set.contains(i)) continue;
-            return i;
-        }
-        return -1;
     }
 
     public int checkOrder(int slot) {

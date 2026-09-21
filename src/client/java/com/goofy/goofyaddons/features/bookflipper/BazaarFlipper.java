@@ -71,6 +71,7 @@ public class BazaarFlipper implements Feature {
     private int anvil_Counter = -1;
     private int anvil_Counter_2 = -1;
     private int combine_Counter = -1;
+    private boolean overFlowProt = false;
 
     private Task activeTask = null;
     private Set<Task> listOfTaskToChange = new HashSet<>();
@@ -111,6 +112,7 @@ public class BazaarFlipper implements Feature {
         combine_Counter = -1;
         checkedFirstPage = false;
         isStartUpCheckCompleted = false;
+        didReceiveItems = false;
         state = State.START;
         taskList.clear();
         listOfTaskToChange.clear();
@@ -118,7 +120,6 @@ public class BazaarFlipper implements Feature {
         bazaarMonitor.stop();
         bazaarMonitor.reset();
         ChatUtils.clientMessage("BazaarFlipper: Stopped");
-
     }
 
     @Override
@@ -294,6 +295,7 @@ public class BazaarFlipper implements Feature {
                     int amount = inventoryScanner.checkOrder(slot.getFirst());
                     if (amount > inventoryScanner.getEmptyInventorySlots()) {
                         debug("[BazaarFlipper] STARTUP_BAZAAR_CHECK: not enough empty inventory slots to claim " + amount + " items, going to IDLE");
+                        overFlowProt = true;
                         state = State.IDLE;
                         return;
                     }
@@ -552,7 +554,6 @@ public class BazaarFlipper implements Feature {
                         debug("[BazaarFlipper] STORE: handling level " + bookList.level + " " + bookList.book + " (excess=" + needToStoreExcessBook + ")");
 
                     if (bookList == null) {
-                        // if (confirmItemChange(0, usingSecondPage ? 2 : 1, needToStoreExcessBook ? bookLists : task.bookList)) return;
                         if (needToStoreExcessBook) {
                             debug("[BazaarFlipper] STORE: finished storing excess books");
                             needToStoreExcessBook = false;
@@ -657,7 +658,6 @@ public class BazaarFlipper implements Feature {
 
                         // first we handle if we have no books to pull out
                         if (bookToHandle == null) {
-                            // if (confirmItemChange(0, usingSecondPage == true ? 2 : 1, task.bookList)) return;
                             debug("[BazaarFlipper] ANVIL: nothing left to pull out for " + task.getBook() + ", schedule was " + task.actionSchedule);
                             switch (task.actionSchedule) {
                                 case ANVIL_SELL -> task.setBookState(Task.BookState.SELL);
@@ -733,7 +733,6 @@ public class BazaarFlipper implements Feature {
 
                     if (bookList == null) {
                         debug("[BazaarFlipper] ANVIL: no more books to pull for merging on " + task.getBook() + ", schedule was " + task.actionSchedule);
-                        // if (confirmItemChange(0, usingSecondPage == true ? 2 : 1, task.bookList)) return;
                         switch (task.actionSchedule) {
                             case ANVIL_SELL -> task.setBookState(Task.BookState.SELL);
                             case SELECTED_COMBINE_STORE_BUYORDER, NONE -> task.setBookState(Task.BookState.COMBINE);
@@ -1072,20 +1071,23 @@ public class BazaarFlipper implements Feature {
                 }
             }
 
-            if (isStartUpCheckCompleted) {
-                if (task.getAmountToOrder() == 0) {
-                    task.setBookState(Task.BookState.ANVIL);
-                    continue;
-                }
-
-                if (task.isCombinable()) {
-                    task.setBookState(Task.BookState.SELECTED);
-                    task.actionSchedule = Task.ActionSchedule.SELECTED_COMBINE_STORE_BUYORDER;
-                    continue;
-                }
-
-                task.setBookState(Task.BookState.SELECTED);
+            if (task.getAmountToOrder() == 0) {
+                task.setBookState(Task.BookState.ANVIL);
+                continue;
             }
+
+            if (task.isCombinable()) {
+                task.setBookState(Task.BookState.SELECTED);
+                task.actionSchedule = Task.ActionSchedule.SELECTED_COMBINE_STORE_BUYORDER;
+                continue;
+            }
+            task.setBookState(Task.BookState.SELECTED);
+        }
+
+        if (overFlowProt) {
+            overFlowProt = false;
+            state = State.IDLE;
+            return;
         }
         state = isStartUpCheckCompleted ? State.IDLE : State.STARTUP_CHECK;
     }
@@ -1210,27 +1212,6 @@ public class BazaarFlipper implements Feature {
         }
     }
 
-    /*
-    private boolean confirmItemChange(int target, int revert, List<BookList> bookLists) {
-        Boolean redoAction = false;
-        Set<Integer> set = new HashSet<>();
-        for (BookList bookList : bookLists) {
-            if (bookList.location != target) continue;
-            int attempt = inventoryScanner.doesItExist(bookList.book.getRomanLevel(bookList.level), set);
-
-            if (attempt != -1) {
-                set.add(attempt);
-                continue;
-            }
-
-            debug("[BazaarFlipper] confirmItemChange: level " + bookList.level + " " + bookList.book + " expected at location " + target + " but not found, reverting location to " + revert);
-            bookList.location = revert;
-            redoAction = true;
-        }
-
-        return redoAction;
-    }
-    */
     private void debug(String string) {
         ChatUtils.debugMessage(string);
     }
