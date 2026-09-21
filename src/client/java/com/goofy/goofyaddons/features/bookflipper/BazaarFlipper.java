@@ -115,6 +115,7 @@ public class BazaarFlipper implements Feature {
         didReceiveItems = false;
         state = State.START;
         taskList.clear();
+        bookLists.clear();
         listOfTaskToChange.clear();
         running = false;
         bazaarMonitor.stop();
@@ -351,7 +352,7 @@ public class BazaarFlipper implements Feature {
 
                     case ANVIL -> {
                         if (!taskToHandle.bookList.isEmpty() && taskToHandle.bookList.getFirst().level == taskToHandle.getBook().sellLevel()) {
-                            if (taskToHandle.bookList.getFirst().location == 0) {
+                            if (taskToHandle.bookList.getFirst().location != 0) {
                                 debug("[BazaarFlipper] IDLE: " + taskToHandle.getBook() + " already at sell level in container, going to ANVIL to pull out then sell");
                                 taskToHandle.actionSchedule = Task.ActionSchedule.ANVIL_SELL;
                                 taskToHandle.setBookState(Task.BookState.ANVIL);
@@ -365,7 +366,7 @@ public class BazaarFlipper implements Feature {
                         }
 
                         if (!taskToHandle.bookList.isEmpty() && taskToHandle.bookList.getLast().location == 0) {
-                            debug("[BazaarFlipper] IDLE: highest level book for " + taskToHandle.getBook() + " already in inventory, going to COMBINE");
+                            debug("[BazaarFlipper] IDLE: " + taskToHandle.getBook() + " already in inventory, going to COMBINE");
                             taskToHandle.setBookState(Task.BookState.COMBINE);
                             state = State.COMBINE;
                             taskToHandle.bookList.sort(Comparator.comparingInt(bookList -> bookList.level));
