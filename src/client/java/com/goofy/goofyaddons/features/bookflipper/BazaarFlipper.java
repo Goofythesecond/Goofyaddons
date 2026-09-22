@@ -629,6 +629,7 @@ public class BazaarFlipper implements Feature {
 
                     // if we have all the amount we pull out everything
                     if (task.getAmountToOrder() == 0) {
+                        List<Integer> slot_1 = new ArrayList<>();
                         List<Integer> slot = new ArrayList<>();
 
                         // here we check the amount we'll pull out and assign book one by one
@@ -652,6 +653,7 @@ public class BazaarFlipper implements Feature {
                             }
 
                             slot.addAll(inventoryScanner.findLoreContainer(bookList.book.getRomanLevel(bookList.level)));
+                            slot_1.addAll(inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookList.level)));
 
                             bookToHandle = bookList;
                             break;
@@ -665,14 +667,31 @@ public class BazaarFlipper implements Feature {
                                 case NONE -> task.setBookState(Task.BookState.COMBINE);
                             }
                             usingSecondPage = false;
+                            anvil_Counter_2 = -1;
+                            anvil_Counter = -1;
                             return;
                         }
 
+                        // Item move check
                         if (slot.isEmpty()) {
                             debug("[BazaarFlipper] ANVIL: level " + bookToHandle.level + " no longer in container, marking moved to inventory (location=0)");
                             bookToHandle.location = 0;
+                            anvil_Counter = inventoryScanner.findLoreContainer(task.getBook().getRomanLevel(bookToHandle.level)).size();
+                            anvil_Counter_2 = inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookToHandle.level)).size();
                             return;
                         }
+
+                        // compares how many items it had before and how many items it has now to label them as moved or just labeling them once empty
+                        if (anvil_Counter != -1 && anvil_Counter > slot.size() && anvil_Counter_2 > inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookToHandle.level)).size()) {
+                            debug("[BazaarFlipper] ANVIL: detected move for level " + bookToHandle.level + " (container " + anvil_Counter + "->" + slot.size() + ", inventory " + anvil_Counter_2 + "->" + inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookToHandle.level)).size() + ")");
+                            bookToHandle.location = 0;
+                            anvil_Counter = inventoryScanner.findLoreContainer(task.getBook().getRomanLevel(bookToHandle.level)).size();
+                            anvil_Counter_2 = inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookToHandle.level)).size();
+                            return;
+                        }
+
+                        anvil_Counter_2 = slot_1.size();
+                        anvil_Counter = slot.size();
 
                         InventoryUtils.clickSlot(slot.getFirst(), true);
                         return;
@@ -738,6 +757,8 @@ public class BazaarFlipper implements Feature {
                             case ANVIL_SELL -> task.setBookState(Task.BookState.SELL);
                             case SELECTED_COMBINE_STORE_BUYORDER, NONE -> task.setBookState(Task.BookState.COMBINE);
                         }
+                        anvil_Counter = -1;
+                        anvil_Counter_2 = -1;
                         usingSecondPage = false;
                         return;
                     }
