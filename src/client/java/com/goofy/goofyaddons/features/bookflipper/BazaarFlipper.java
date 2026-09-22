@@ -682,7 +682,7 @@ public class BazaarFlipper implements Feature {
                         }
 
                         // compares how many items it had before and how many items it has now to label them as moved or just labeling them once empty
-                        if (anvil_Counter != -1 && anvil_Counter > slot.size() && anvil_Counter_2 > inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookToHandle.level)).size()) {
+                        if (anvil_Counter != -1 && anvil_Counter > slot.size() && anvil_Counter_2 < slot_1.size()) {
                             debug("[BazaarFlipper] ANVIL: detected move for level " + bookToHandle.level + " (container " + anvil_Counter + "->" + slot.size() + ", inventory " + anvil_Counter_2 + "->" + inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookToHandle.level)).size() + ")");
                             bookToHandle.location = 0;
                             anvil_Counter = inventoryScanner.findLoreContainer(task.getBook().getRomanLevel(bookToHandle.level)).size();
@@ -790,7 +790,7 @@ public class BazaarFlipper implements Feature {
                     }
 
                     // compares how many items it had before and how many items it has now to label them as moved or just labeling them once empty
-                    if (anvil_Counter != -1 && anvil_Counter > slot.size() && anvil_Counter_2 > inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookList.level)).size()) {
+                    if (anvil_Counter != -1 && anvil_Counter > slot.size() && anvil_Counter_2 < slot_2.size()) {
                         debug("[BazaarFlipper] ANVIL: detected move for level " + bookList.level + " (container " + anvil_Counter + "->" + slot.size() + ", inventory " + anvil_Counter_2 + "->" + inventoryScanner.findLoreInv(task.getBook().getRomanLevel(bookList.level)).size() + ")");
                         bookList.location = 0;
                         anvil_Counter = inventoryScanner.findLoreContainer(task.getBook().getRomanLevel(bookList.level)).size();
@@ -853,16 +853,16 @@ public class BazaarFlipper implements Feature {
                         return;
                     }
 
+                    if (inventoryScanner.findMisMatch(firstBook.book.getRomanLevel(firstBook.level))) {
+                        minecraft.player.closeContainer();
+                        debug("[BazaarFlipper] COMBINE: found mismatch attempting self repair");
+                        return;
+                    }
+
                     if (inventoryScanner.getEmptyContainerSlots() == 0 || combine_Counter_2 != 0 || inventoryScanner.findLoreContainer(firstBook.book.getRomanLevel(firstBook.level + 1)).size() == 1) {
                         debug("[BazaarFlipper] COMBINE: toggling anvil output slot for level " + (firstBook.level + 1) + " " + firstBook.book);
                         InventoryUtils.clickSlot(22, false);
                         combine_Counter_2 = combine_Counter_2 == 0 ? 1 : 0;
-                        return;
-                    }
-
-                    if (inventoryScanner.findMisMatch(firstBook.book.getRomanLevel(firstBook.level))) {
-                        minecraft.player.closeContainer();
-                        debug("[BazaarFlipper] COMBINE: found mismatch attempting self repair");
                         return;
                     }
 

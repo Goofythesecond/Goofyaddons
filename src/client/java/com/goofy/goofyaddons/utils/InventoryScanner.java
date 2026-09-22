@@ -160,18 +160,16 @@ public class InventoryScanner {
     }
 
     public boolean findMisMatch(String string) {
-        List<Integer> slots = new ArrayList<>();
         AbstractContainerMenu menu = minecraft.player.containerMenu;
-        int end = menu.slots.size() - 36;
-        for (int i = 0; i < end; i++) {
-            ItemStack item = menu.slots.get(i).getItem();
-            if (item.isEmpty()) continue;
-            ItemLore lore = item.get(DataComponents.LORE);
-            if (lore == null || !lore.lines().stream().anyMatch(l -> l.getString().equals(string))) continue;
-            slots.add(i);
-        }
-        if (getEmptyContainerSlots() == 0 && slots.size() == 1) return true;
-        return false;
+        if (!menu.slots.get(29).hasItem() || !menu.slots.get(29).hasItem()) return false;
+        ItemStack item = menu.slots.get(29).getItem();
+        ItemStack item2 = menu.slots.get(33).getItem();
+        ItemLore lore = item.get(DataComponents.LORE);
+        ItemLore lore2 = item2.get(DataComponents.LORE);
+        if (lore == null || lore2 == null) return false;
+        if (lore.lines().stream().anyMatch(l -> l.getString().equals(string)) && lore2.lines().stream().anyMatch(l -> l.getString().equals(string)))
+            return false;
+        return true;
     }
 
     public List<Integer> matchingBookInContainer(Book book) {
