@@ -1039,6 +1039,7 @@ public class BazaarFlipper implements Feature {
 
     private void lastStateCheck() {
         if (state == lastState) return;
+        if (minecraft.screen != null) minecraft.player.closeContainer();
         tick = 0;
         attemptedToClaim = false;
         ChatUtils.clientMessage("State switched from: " + lastState + " to: " + state);
