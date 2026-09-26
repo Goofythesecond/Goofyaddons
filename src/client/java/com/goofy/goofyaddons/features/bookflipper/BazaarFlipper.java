@@ -143,7 +143,7 @@ public class BazaarFlipper implements Feature {
     @Override
     public void onTick() {
         if (!running) return;
-        selfRecovery();
+        selfRecoveryTrigger();
         handleTaskStateChange();
         lastStateCheck();
         bazaarMonitor.onTick();
@@ -915,6 +915,9 @@ public class BazaarFlipper implements Feature {
                     if (!slot.isEmpty()) {
                         InventoryUtils.clickSlot(slot.getFirst(), false);
                         return;
+                    } else {
+                        initSelfRecovery();
+                        return;
                     }
                 }
 
@@ -1240,21 +1243,25 @@ public class BazaarFlipper implements Feature {
         }
     }
 
-    private void selfRecovery() {
+    private void selfRecoveryTrigger() {
         if (!attemptedToClaim) {
             tick = 0;
             return;
         }
         tick++;
         if (tick != 1200) return;
-        stop();
-        ChatUtils.debugMessage("Failsafe Alert: Macro had been attempting to claim for more than 1 minute.");
-        ChatUtils.debugMessage("Failsafe Alert: Attempting self repair via restart.");
-        start();
+        initSelfRecovery();
     }
 
     private void debug(String string) {
         ChatUtils.debugMessage(string);
+    }
+
+    private void initSelfRecovery() {
+        stop();
+        ChatUtils.debugMessage("Failsafe Alert: Macro had been attempting to claim for more than 1 minute.");
+        ChatUtils.debugMessage("Failsafe Alert: Attempting self repair via restart.");
+        start();
     }
 
 }
