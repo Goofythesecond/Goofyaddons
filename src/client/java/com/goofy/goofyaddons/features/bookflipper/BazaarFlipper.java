@@ -72,6 +72,7 @@ public class BazaarFlipper implements Feature {
     private int anvil_Counter_2 = -1;
     private int combine_Counter = -1;
     private boolean overFlowProt = false;
+    private int tick;
 
     private Task activeTask = null;
     private Set<Task> listOfTaskToChange = new HashSet<>();
@@ -116,6 +117,7 @@ public class BazaarFlipper implements Feature {
         state = State.START;
         taskList.clear();
         bookLists.clear();
+        tick = 0;
         listOfTaskToChange.clear();
         running = false;
         bazaarMonitor.stop();
@@ -141,6 +143,7 @@ public class BazaarFlipper implements Feature {
     @Override
     public void onTick() {
         if (!running) return;
+        selfRecovery();
         handleTaskStateChange();
         lastStateCheck();
         bazaarMonitor.onTick();
@@ -1036,6 +1039,8 @@ public class BazaarFlipper implements Feature {
 
     private void lastStateCheck() {
         if (state == lastState) return;
+        tick = 0;
+        attemptedToClaim = false;
         ChatUtils.clientMessage("State switched from: " + lastState + " to: " + state);
         clock.stop();
         if (lastState == State.IDLE) {
@@ -1232,6 +1237,19 @@ public class BazaarFlipper implements Feature {
                 listOfTaskToChange.add(task);
             }
         }
+    }
+
+    private void selfRecovery() {
+        if (!attemptedToClaim) {
+            tick = 0;
+            return;
+        }
+        tick++;
+        if (tick != 1200) return;
+        stop();
+        ChatUtils.debugMessage("Failsafe Alert: Macro had been attempting to claim for more than 1 minute.");
+        ChatUtils.debugMessage("Failsafe Alert: Attempting self repair via restart.");
+        start();
     }
 
     private void debug(String string) {
