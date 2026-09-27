@@ -706,6 +706,7 @@ public class BazaarFlipper implements Feature {
 
                     HashMap<Integer, Integer> futureItem = new HashMap<>();
                     BookList bookList = null;
+                    int amount = 0;
 
                     // this is loop to handle what item to pick
                     for (int i = 0; i < task.bookList.size(); i++) {
@@ -777,8 +778,8 @@ public class BazaarFlipper implements Feature {
                         return;
                     }
 
-                    if (slot.size() > inventoryScanner.getEmptyInventorySlots()) {
-                        debug("[BazaarFlipper] ANVIL: need " + slot.size() + " inventory slot(s) but only " + inventoryScanner.getEmptyInventorySlots() + " empty, going to IDLE");
+                    if (task.bookList.size() > inventoryScanner.getEmptyInventorySlots()) {
+                        debug("[BazaarFlipper] ANVIL: need " + task.bookList.size() + " inventory slot(s) but only " + inventoryScanner.getEmptyInventorySlots() + " empty, going to IDLE");
                         state = State.IDLE;
                         return;
                     }
