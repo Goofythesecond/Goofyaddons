@@ -19,15 +19,16 @@ public class ChatHook {
     }
 
 
-
     private static void onChatMessage(Component message, boolean overlay) {
         if (overlay == true) return;
         String text = message.getString().replaceAll("§.", "");
+        if (text.startsWith("[GoofyAddons]")) return;
         for (HOOK hook : hookList) {
             if (!text.contains(hook.pattern)) continue;
             hook.string.accept(text);
         }
     }
 
-    record HOOK(String pattern, Consumer<String> string) {}
+    record HOOK(String pattern, Consumer<String> string) {
+    }
 }
