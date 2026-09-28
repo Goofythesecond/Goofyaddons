@@ -570,6 +570,10 @@ public class BazaarFlipper implements Feature {
                                 task.setBookState(Task.BookState.IN_BUY_ORDER);
                                 task.actionSchedule = Task.ActionSchedule.NONE;
                             }
+                            case STORE_ANVIL -> {
+                                task.setBookState(Task.BookState.ANVIL);
+                                task.actionSchedule = Task.ActionSchedule.NONE;
+                            }
                         }
                         return;
                     }
@@ -779,8 +783,9 @@ public class BazaarFlipper implements Feature {
                     }
 
                     if (task.bookList.size() > inventoryScanner.getEmptyInventorySlots()) {
-                        debug("[BazaarFlipper] ANVIL: need " + task.bookList.size() + " inventory slot(s) but only " + inventoryScanner.getEmptyInventorySlots() + " empty, going to IDLE");
-                        state = State.IDLE;
+                        debug("[BazaarFlipper] ANVIL: need " + task.bookList.size() + " inventory slot(s) but only " + inventoryScanner.getEmptyInventorySlots() + " empty, scheduling task for store");
+                        task.setBookState(Task.BookState.STORE);
+                        task.actionSchedule = Task.ActionSchedule.STORE_ANVIL;
                         return;
                     }
 
