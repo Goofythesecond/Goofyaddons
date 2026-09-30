@@ -167,14 +167,11 @@ public class BazaarFlipper implements Feature {
             }
 
             case STARTUP_CHECK -> {
-                if (minecraft.screen == null) clock.start(randomizer());
-                if (minecraft.screen == null && clock.shouldFire()) {
+                if (scheduler("", 0, true, false)) {
                     minecraft.player.connection.sendCommand(checkedFirstPage ? GoofyConfig.INSTANCE.secondPage : GoofyConfig.INSTANCE.firstPage);
                 }
 
-                if (containerNameCheck("Ender Chest") || containerNameCheck("Jumbo Backpack") || containerNameCheck("Greater Backpack"))
-                    clock.start(randomizer());
-                if ((containerNameCheck("Ender Chest") || containerNameCheck("Jumbo Backpack") || containerNameCheck("Greater Backpack")) && inventoryScanner.isMenuLoaded(8) && clock.shouldFire()) {
+                if (scheduler("", 8, false, true)) {
                     Set<Integer> counter = new HashSet<>();
                     // in here we check both pages
                     for (Task task : taskList) {
@@ -253,13 +250,11 @@ public class BazaarFlipper implements Feature {
                     return;
                 }
 
-                if (minecraft.screen == null) clock.start(randomizer());
-                if (minecraft.screen == null && clock.shouldFire()) {
+                if (scheduler("", 0, true, false)) {
                     minecraft.player.connection.sendCommand("managebazaarorders");
                 }
 
-                if (containerNameCheck("Bazaar")) clock.start(randomizer());
-                if (containerNameCheck("Bazaar") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
+                if (scheduler("Bazaar", 35, false, false)) {
                     // Waiting for chat message to appear here
                     if (attemptedToClaim) {
                         if (!didReceiveItems) return;
@@ -309,16 +304,15 @@ public class BazaarFlipper implements Feature {
                         debug("[BazaarFlipper] STARTUP_BAZAAR_CHECK: claiming " + amount + " of " + task.getBook());
                         handleItemAssigning(task, amount);
                     }
-
                 }
 
-                if (containerNameCheck("Order")) clock.start(randomizer());
-                if (containerNameCheck("Order") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
+                if (scheduler("Order", 35, false, false)) {
                     List<Integer> slot = inventoryScanner.findContainer("Cancel Order");
                     if (slot.isEmpty()) return;
                     InventoryUtils.clickSlot(slot.getFirst(), false);
                 }
             }
+
 
             case IDLE -> {
                 if (needToStoreExcessBook) {
@@ -1268,6 +1262,21 @@ public class BazaarFlipper implements Feature {
         ChatUtils.debugMessage("Failsafe Alert: Macro had been attempting to claim for more than 1 minute.");
         ChatUtils.debugMessage("Failsafe Alert: Attempting self repair via restart.");
         start();
+    }
+
+    private boolean scheduler(String containerName, int menuLoadedPoint, boolean containerOpenCheck, boolean isBackPack) {
+        if (containerOpenCheck) return minecraft.screen == null;
+        if (minecraft.screen == null || !inventoryScanner.isMenuLoaded(menuLoadedPoint)) return false;
+
+        if (isBackPack) {
+            if (!(containerNameCheck("Ender Chest") || containerNameCheck("Jumbo Backpack") || containerNameCheck("Greater Backpack")))
+                return false;
+            clock.start(randomizer());
+            return clock.shouldFire();
+        }
+        if (!containerNameCheck(containerName)) return false;
+        clock.start(randomizer());
+        return clock.shouldFire();
     }
 
 }
