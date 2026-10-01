@@ -6,9 +6,6 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class GoofyGui extends Screen {
     private static final int PANEL_WIDTH = 350;
     private static final int PANEL_HEIGHT = 220;
@@ -41,6 +38,8 @@ public class GoofyGui extends Screen {
 
         graphics.fill((panelX + 40), (panelY + 60), (panelX + 41), (panelY + PANEL_HEIGHT), 0xFF000000);
 
+        graphics.text(minecraft.font, "Test", (panelX + 40) / 2, (panelY + 60) / 2, 0xFF55FFFF);
+
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
                 HEADER,
@@ -58,7 +57,6 @@ public class GoofyGui extends Screen {
 
         graphics.outline(panelX + (PANEL_WIDTH - 260) / 2, panelY + 8, 260, 260 * 192 / 1195, 0xFF000000);
     }
-
 
 
     @Override

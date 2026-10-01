@@ -22,10 +22,6 @@ public class FeatureManager {
 
     public void onTick() {
         if (currentFeature == null) return;
-        if (minecraft.player == null) {
-            currentFeature = null;
-            return;
-        }
         currentFeature.onTick();
     }
 

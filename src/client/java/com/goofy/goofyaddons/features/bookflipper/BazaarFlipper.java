@@ -167,11 +167,14 @@ public class BazaarFlipper implements Feature {
             }
 
             case STARTUP_CHECK -> {
-                if (scheduler("", 0, true, false)) {
+                if (minecraft.screen == null) clock.start(randomizer());
+                if (minecraft.screen == null && clock.shouldFire()) {
                     minecraft.player.connection.sendCommand(checkedFirstPage ? GoofyConfig.INSTANCE.secondPage : GoofyConfig.INSTANCE.firstPage);
                 }
 
-                if (scheduler("", 8, false, true)) {
+                if (containerNameCheck("Ender Chest") || containerNameCheck("Jumbo Backpack") || containerNameCheck("Greater Backpack"))
+                    clock.start(randomizer());
+                if ((containerNameCheck("Ender Chest") || containerNameCheck("Jumbo Backpack") || containerNameCheck("Greater Backpack")) && inventoryScanner.isMenuLoaded(8) && clock.shouldFire()) {
                     Set<Integer> counter = new HashSet<>();
                     // in here we check both pages
                     for (Task task : taskList) {
@@ -250,11 +253,13 @@ public class BazaarFlipper implements Feature {
                     return;
                 }
 
-                if (scheduler("", 0, true, false)) {
+                if (minecraft.screen == null) clock.start(randomizer());
+                if (minecraft.screen == null && clock.shouldFire()) {
                     minecraft.player.connection.sendCommand("managebazaarorders");
                 }
 
-                if (scheduler("Bazaar", 35, false, false)) {
+                if (containerNameCheck("Bazaar")) clock.start(randomizer());
+                if (containerNameCheck("Bazaar") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
                     // Waiting for chat message to appear here
                     if (attemptedToClaim) {
                         if (!didReceiveItems) return;
@@ -304,9 +309,11 @@ public class BazaarFlipper implements Feature {
                         debug("[BazaarFlipper] STARTUP_BAZAAR_CHECK: claiming " + amount + " of " + task.getBook());
                         handleItemAssigning(task, amount);
                     }
+
                 }
 
-                if (scheduler("Order", 35, false, false)) {
+                if (containerNameCheck("Order")) clock.start(randomizer());
+                if (containerNameCheck("Order") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
                     List<Integer> slot = inventoryScanner.findContainer("Cancel Order");
                     if (slot.isEmpty()) return;
                     InventoryUtils.clickSlot(slot.getFirst(), false);

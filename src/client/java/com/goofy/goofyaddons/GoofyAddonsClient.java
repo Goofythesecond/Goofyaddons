@@ -5,8 +5,10 @@ import com.goofy.goofyaddons.event.ChatHook;
 import com.goofy.goofyaddons.failsafes.FailsafeManager;
 import com.goofy.goofyaddons.features.FeatureManager;
 import com.goofy.goofyaddons.keybinds.GoofyKeybinds;
+import com.goofy.goofyaddons.render.gui.GoofyGui;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
@@ -32,6 +34,10 @@ public class GoofyAddonsClient implements ClientModInitializer {
             while (GoofyKeybinds.stopKey.consumeClick()) {
                 FeatureManager.INSTANCE.stop();
             }
+        });
+
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, world) -> {
+
         });
     }
 }
