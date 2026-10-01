@@ -649,8 +649,9 @@ public class BazaarFlipper implements Feature {
                             if (bookList.location == 0) continue;
                             int remaining = task.bookList.size() - i;
                             if (remaining > inventoryScanner.getEmptyInventorySlots()) {
-                                debug("[BazaarFlipper] ANVIL: need " + remaining + " inventory slot(s) to pull remaining books for " + task.getBook() + " but not enough free, going to IDLE");
-                                state = State.IDLE;
+                                debug("[BazaarFlipper] ANVIL: need " + task.bookList.size() + " inventory slot(s) but only " + inventoryScanner.getEmptyInventorySlots() + " empty, scheduling task for store");
+                                task.setBookState(Task.BookState.STORE);
+                                task.actionSchedule = Task.ActionSchedule.STORE_ANVIL;
                                 return;
                             }
                             // here we check if we should move to the second page
