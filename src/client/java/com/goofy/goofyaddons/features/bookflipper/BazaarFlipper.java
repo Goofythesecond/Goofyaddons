@@ -1218,6 +1218,7 @@ public class BazaarFlipper implements Feature {
     private void handleTaskStateChange() {
         if (listOfTaskToChange.isEmpty()) return;
 
+        if (state == State.OUTBID || state == State.REPLACE_SELL) return;
         for (Task task : new HashSet<>(listOfTaskToChange)) {
             switch (task.getBookState()) {
                 case SELL_ORDER -> {
