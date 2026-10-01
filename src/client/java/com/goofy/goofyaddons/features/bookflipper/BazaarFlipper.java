@@ -1028,7 +1028,7 @@ public class BazaarFlipper implements Feature {
 
                 if (containerNameCheck("At what price are you selling")) clock.start(randomizer());
                 if (containerNameCheck("At what price are you selling") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
-                    bazaarMonitor.add(activeTask.getBook(), inventoryScanner.getUnitPrice(12), true);
+                    bazaarMonitor.add(task.getBook(), inventoryScanner.getUnitPrice(12), true);
                     InventoryUtils.clickSlot(12, false);
                 }
 
