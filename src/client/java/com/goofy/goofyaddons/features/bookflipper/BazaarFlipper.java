@@ -186,6 +186,8 @@ public class BazaarFlipper implements Feature {
 
                             int level = inventoryScanner.getLevel(i);
 
+                            if (level == -1) continue;
+
                             int attempt = task.assignBook(task.getBook(), level, checkedFirstPage ? 2 : 1, 1);
 
                             if (attempt == 0) {

@@ -208,6 +208,7 @@ public class InventoryScanner {
         CustomData customData = itemStack.get(DataComponents.CUSTOM_DATA);
         if (customData == null) return -1;
         CompoundTag tag = customData.copyTag().getCompound("enchantments").orElse(null);
+        if (tag == null) return -1;
         String id = tag.keySet().iterator().next();
 
         return tag.getIntOr(id, -1);
