@@ -333,7 +333,7 @@ public class BazaarFlipper implements Feature {
 
                 // here we loop through every task and pick based of priority
                 for (Task task : taskList) {
-                    if (!isStartUpCheckCompleted && task.getBookState().equals(Task.BookState.OUTBID) || inventoryIsFull)
+                    if (!isStartUpCheckCompleted && task.getBookState().equals(Task.BookState.OUTBID) || inventoryIsFull && task.getBookState().equals(Task.BookState.OUTBID))
                         continue;
                     Integer rank = STATE_PRIORITY.get(task.getBookState());
                     if (rank == null) continue;
