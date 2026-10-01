@@ -161,7 +161,7 @@ public class InventoryScanner {
 
     public boolean findMisMatch(String string) {
         AbstractContainerMenu menu = minecraft.player.containerMenu;
-        if (!menu.slots.get(29).hasItem() || !menu.slots.get(29).hasItem()) return false;
+        if (!menu.slots.get(29).hasItem() || !menu.slots.get(33).hasItem()) return false;
         ItemStack item = menu.slots.get(29).getItem();
         ItemStack item2 = menu.slots.get(33).getItem();
         ItemLore lore = item.get(DataComponents.LORE);
