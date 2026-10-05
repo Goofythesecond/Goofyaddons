@@ -17,6 +17,7 @@ import com.goofy.goofyaddons.utils.ScoreboardUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -869,8 +870,11 @@ public class BazaarFlipper implements Feature {
                     }
 
                     if (inventoryScanner.findMisMatch(firstBook.book.getRomanLevel(firstBook.level))) {
+                        ItemStack slot29 = minecraft.player.containerMenu.slots.get(29).getItem();
+                        ItemStack slot33 = minecraft.player.containerMenu.slots.get(33).getItem();
+                        debug("[BazaarFlipper] COMBINE: mismatch for target \"" + firstBook.book.getRomanLevel(firstBook.level) +
+                                "\" -> slot29=[" + slot29.getHoverName().getString() + "], slot33=[" + slot33.getHoverName().getString() + "]");
                         minecraft.player.closeContainer();
-                        debug("[BazaarFlipper] COMBINE: found mismatch attempting self repair");
                         return;
                     }
 
