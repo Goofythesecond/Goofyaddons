@@ -1210,8 +1210,15 @@ public class BazaarFlipper implements Feature {
 
         for (Task task : taskList) {
             if (!stripped.equals(task.getBook().getRomanLevel(task.getBook().level())) && !isSellOffer) continue;
-            if (!stripped.equals(task.getBook().getRomanLevel(task.getBook().sellLevel())) && isSellOffer) continue;
+            if (!stripped.equals(task.getBook().getRomanLevel(task.getBook().sellLevel())) && isSellOffer
+                    && task.getBookState() == Task.BookState.SELL_ORDER) continue;
 
+            if (isSellOffer) {
+                if (task.getBookState() != Task.BookState.SELL_ORDER) continue;
+                if (!stripped.equals(task.getBook().getRomanLevel(task.getBook().sellLevel()))) continue;
+            } else {
+                if (!stripped.equals(task.getBook().getRomanLevel(task.getBook().level()))) continue;
+            }
             debug("[BazaarFlipper] onOrderNotice: matched task " + task.getBook() + ", queuing state change");
             listOfTaskToChange.add(task);
             bazaarMonitor.finish(task.getBook(), isSellOffer);
