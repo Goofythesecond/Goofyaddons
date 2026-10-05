@@ -1261,7 +1261,7 @@ public class BazaarFlipper implements Feature {
             if (book.isSellOrder && (task.getBookState() == Task.BookState.REPLACE_SELL || task.getBookState() == Task.BookState.SELL_ORDER)) {
                 debug("[BazaarFlipper] handleOutbid: sell order for " + task.getBook() + " was outbid/undercut, queuing state change");
                 listOfTaskToChange.add(task);
-            } else {
+            } else if (!book.isSellOrder) {
                 debug("[BazaarFlipper] handleOutbid: buy order for " + task.getBook() + " was outbid, queuing state change");
                 listOfTaskToChange.add(task);
             }
