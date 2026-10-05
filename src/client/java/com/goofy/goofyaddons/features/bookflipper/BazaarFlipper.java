@@ -308,6 +308,7 @@ public class BazaarFlipper implements Feature {
                     InventoryUtils.clickSlot(slot.getFirst(), false);
 
                     if (amount > 0) {
+                        attemptedToClaim = true;
                         debug("[BazaarFlipper] STARTUP_BAZAAR_CHECK: claiming " + amount + " of " + task.getBook());
                         handleItemAssigning(task, amount);
                     }
@@ -509,6 +510,7 @@ public class BazaarFlipper implements Feature {
                     }
                     InventoryUtils.clickSlot(slot.getFirst(), false);
                     if (amount > 0) {
+                        attemptedToClaim = true;
                         debug("[BazaarFlipper] OUTBID: claiming " + amount + " of " + task.getBook());
                         handleItemAssigning(task, amount);
                     }
