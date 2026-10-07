@@ -4,14 +4,12 @@ import com.goofy.goofyaddons.utils.ChatUtils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Set;
 
 
 public class BazaarMonitor {
@@ -20,35 +18,51 @@ public class BazaarMonitor {
     private long duration = 20000;
     private long startMs;
     private long lastUpdated;
-    private final List<BazaarMonitorItem> monitorItemList = new ArrayList<>();
-    private final List<Consumer<BazaarMonitorItem>> hookList = new ArrayList<>();
+    private List<Task> taskList;
+    private Set<Task> listOfTaskToChange;
 
-    public void add(Book book, double price, boolean isSellOrder) {
-        ChatUtils.debugMessage("[BazaarMonitor] Book was added " + book.name() + " " + price + "sellorder=" + isSellOrder);
-        monitorItemList.add(new BazaarMonitorItem(book, price, isSellOrder));
+    public BazaarMonitor(List<Task> taskList, Set<Task> listOfTaskToChange) {
+        this.taskList = taskList;
+        this.listOfTaskToChange = listOfTaskToChange;
     }
 
-    public void finish(Book book, boolean isSellOffer) {
-        System.out.println("[BazaarMonitor] Removing book " + book.name());
-        monitorItemList.removeIf(bazaarMonitorItem -> bazaarMonitorItem.isSellOrder == isSellOffer && bazaarMonitorItem.book.equals(book));
+    public void add(Task task, double price, boolean isSellOrder) {
+        if (task.inBuyOrder && task.inSellOffer) {
+            ChatUtils.debugMessage("[BazaarMonitor] Book was rejected " + task.getBook().name() + " " + price + "sellorder=" + isSellOrder);
+            return;
+        }
+        ChatUtils.debugMessage("[BazaarMonitor] Book was added " + task.getBook().name() + " " + price + "sellorder=" + isSellOrder);
+        task.timeCounter = System.currentTimeMillis();
+        task.priceUnit = price;
+        if (isSellOrder) {
+            task.inSellOffer = true;
+        } else {
+            task.inBuyOrder = true;
+        }
+    }
+
+    public void finish(Task task, boolean isSellOrder) {
+        System.out.println("[BazaarMonitor] Removing book " + task.getBook().name());
+        if (isSellOrder) {
+            task.inSellOffer = false;
+        } else {
+            task.inBuyOrder = false;
+        }
     }
 
     public void reset() {
-        monitorItemList.clear();
-    }
-
-    public void hook(Consumer<BazaarMonitorItem> hook) {
-        hookList.add(hook);
+        for (Task task : taskList) {
+            task.inBuyOrder = false;
+            task.inSellOffer = false;
+        }
     }
 
 
     public void onTick() {
         if (!running) return;
         if (!((System.currentTimeMillis() - startMs) >= duration)) return;
-        if (monitorItemList.isEmpty()) return;
         startMs = System.currentTimeMillis();
         refresh();
-
     }
 
     public void start() {
@@ -84,76 +98,54 @@ public class BazaarMonitor {
 
                     JsonObject products = root.getAsJsonObject("products");
 
-                    monitorItemList.forEach(bazaarMonitorItem -> outbidScanner(products, bazaarMonitorItem));
-
-                    monitorItemList.removeIf(bazaarMonitorItem -> {
-                        if (bazaarMonitorItem.getOutbid()) return true;
-                        return false;
-                    });
+                    for (Task task : taskList) {
+                        if (!task.inSellOffer && !task.inBuyOrder) continue;
+                        outbidScanner(products, task);
+                    }
                 });
 
     }
 
-    private void outbidScanner(JsonObject products, BazaarMonitorItem bazaarMonitorItem) {
-        if (!bazaarMonitorItem.shouldCheck()) return;
-        JsonObject productID = products.getAsJsonObject(bazaarMonitorItem.isSellOrder ? bazaarMonitorItem.book.getLevel(bazaarMonitorItem.book.sellLevel()) : bazaarMonitorItem.book.getLevel(bazaarMonitorItem.book.level()));
-        if (!bazaarMonitorItem.isSellOrder) {
+    private void outbidScanner(JsonObject products, Task task) {
+        if (!shouldCheck(task)) return;
+        JsonObject productID = products.getAsJsonObject(task.inSellOffer ? task.getBook().getLevel(task.getBook().sellLevel()) : task.getBook().getLevel(task.getBook().level()));
+        if (!task.inSellOffer) {
             JsonObject entry = productID.getAsJsonArray("sell_summary").get(0).getAsJsonObject();
             int orders = entry.get("orders").getAsInt();
             double price = entry.get("pricePerUnit").getAsDouble();
 
-            if (orders > 1 || price != bazaarMonitorItem.price) {
-                bazaarMonitorItem.setOutbid(true);
-                handleOutbid(bazaarMonitorItem);
+            if (orders > 1 || price != task.priceUnit) {
+                handleOutbid(task);
             }
         } else {
             JsonObject entry = productID.getAsJsonArray("buy_summary").get(0).getAsJsonObject();
             int orders = entry.get("orders").getAsInt();
             double price = entry.get("pricePerUnit").getAsDouble();
 
-            if (orders > 1 || price != bazaarMonitorItem.price) {
-                bazaarMonitorItem.setOutbid(true);
-                handleOutbid(bazaarMonitorItem);
+            if (orders > 1 || price != task.priceUnit) {
+                handleOutbid(task);
             }
         }
 
     }
 
-    private void handleOutbid(BazaarMonitorItem bazaarMonitorItem) {
-        ChatUtils.debugMessage("[BazaarMonitor] outbidding book " + bazaarMonitorItem.book.name());
-        hookList.getFirst().accept(bazaarMonitorItem);
+    private void handleOutbid(Task task) {
+        ChatUtils.debugMessage("[BazaarMonitor] outbidding book " + task.getBook().name());
+        if (!task.inSellOffer && !task.inBuyOrder) {
+            ChatUtils.debugMessage("[BazaarMonitor] book is already outbid " + task.getBook().name());
+            return;
+        }
+        task.inSellOffer = false;
+        task.inBuyOrder = false;
+        listOfTaskToChange.add(task);
     }
 
-
-
-    public class BazaarMonitorItem {
-        public boolean isSellOrder;
-        public Book book;
-        private double price;
-        private boolean isOutbid = false;
-        private long time;
-
-        public BazaarMonitorItem(Book book, double price, boolean isSellOrder) {
-            this.book = book;
-            this.price = price;
-            this.isSellOrder = isSellOrder;
-            time = System.currentTimeMillis();
-        }
-
-        private void setOutbid(boolean outbid) {
-            isOutbid = outbid;
-        }
-
-        private boolean getOutbid() {
-            return isOutbid;
-        }
-
-        private boolean shouldCheck() {
-            if (!((System.currentTimeMillis() - time) >= duration)) return false;
-            time = System.currentTimeMillis();
-            return true;
-        }
+    private boolean shouldCheck(Task task) {
+        if (!((System.currentTimeMillis() - task.timeCounter) >= duration)) return false;
+        task.timeCounter = System.currentTimeMillis();
+        return true;
     }
+
 
 }
 

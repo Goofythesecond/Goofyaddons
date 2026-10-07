@@ -54,7 +54,6 @@ public class BazaarFlipper implements Feature {
     private ScoreboardUtils scoreboardUtils = new ScoreboardUtils();
     private SplittableRandom splittableRandom = new SplittableRandom();
     private InventoryScanner inventoryScanner = new InventoryScanner();
-    private BazaarMonitor bazaarMonitor = new BazaarMonitor();
     private boolean running = false;
     private List<FlipItem> flipItemList = new ArrayList<>();
     private boolean notEnoughCash = false;
@@ -80,6 +79,8 @@ public class BazaarFlipper implements Feature {
     private List<BookList> bookLists = new ArrayList<>();
     private List<Task> taskList = new ArrayList<>();
 
+    private BazaarMonitor bazaarMonitor = new BazaarMonitor(taskList, listOfTaskToChange);
+
     private static final Map<Task.BookState, Integer> STATE_PRIORITY = Map.of(
             Task.BookState.REPLACE_SELL, 1,
             Task.BookState.BAZAAR_ORDER_CHECK, 2,
@@ -95,7 +96,6 @@ public class BazaarFlipper implements Feature {
     public BazaarFlipper() {
         ChatHook.onMessage("filled", this::handleFilledMessage);
         ChatHook.onMessage("Claimed", this::handleClaimedMessage);
-        bazaarMonitor.hook(this::handleOutbid);
     }
 
     @Override
@@ -423,7 +423,7 @@ public class BazaarFlipper implements Feature {
 
                 if (containerNameCheck("How much do you want to pay")) clock.start(randomizer());
                 if (containerNameCheck("How much do you want to pay") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
-                    bazaarMonitor.add(activeTask.getBook(), inventoryScanner.getUnitPrice(12), false);
+                    bazaarMonitor.add(activeTask, inventoryScanner.getUnitPrice(12), false);
                     InventoryUtils.clickSlot(12, false);
                 }
 
@@ -930,11 +930,10 @@ public class BazaarFlipper implements Feature {
 
                     if (!slot.isEmpty()) {
                         InventoryUtils.clickSlot(slot.getFirst(), false);
-                        return;
                     } else {
                         initSelfRecovery();
-                        return;
                     }
+                    return;
                 }
 
                 if (containerNameCheck("Order")) clock.start(randomizer());
@@ -957,8 +956,8 @@ public class BazaarFlipper implements Feature {
 
                 if (containerNameCheck("At what price are you selling")) clock.start(randomizer());
                 if (containerNameCheck("At what price are you selling") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
-                    bazaarMonitor.finish(task.getBook(), false);
-                    bazaarMonitor.add(task.getBook(), inventoryScanner.getUnitPrice(12), true);
+                    bazaarMonitor.finish(task, true);
+                    bazaarMonitor.add(task, inventoryScanner.getUnitPrice(12), true);
                     InventoryUtils.clickSlot(12, false);
                 }
 
@@ -1035,7 +1034,7 @@ public class BazaarFlipper implements Feature {
 
                 if (containerNameCheck("At what price are you selling")) clock.start(randomizer());
                 if (containerNameCheck("At what price are you selling") && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
-                    bazaarMonitor.add(task.getBook(), inventoryScanner.getUnitPrice(12), true);
+                    bazaarMonitor.add(task, inventoryScanner.getUnitPrice(12), true);
                     InventoryUtils.clickSlot(12, false);
                 }
 
@@ -1225,7 +1224,7 @@ public class BazaarFlipper implements Feature {
             }
             debug("[BazaarFlipper] onOrderNotice: matched task " + task.getBook() + ", queuing state change");
             listOfTaskToChange.add(task);
-            bazaarMonitor.finish(task.getBook(), isSellOffer);
+            bazaarMonitor.finish(task, isSellOffer);
         }
     }
 
@@ -1234,6 +1233,10 @@ public class BazaarFlipper implements Feature {
 
         if (state == State.OUTBID || state == State.REPLACE_SELL) return;
         for (Task task : new HashSet<>(listOfTaskToChange)) {
+            if (!taskList.contains(task)) {
+                listOfTaskToChange.remove(task);
+                return;
+            }
             switch (task.getBookState()) {
                 case SELL_ORDER -> {
                     debug("[BazaarFlipper] handleTaskStateChange: " + task.getBook()
@@ -1254,19 +1257,6 @@ public class BazaarFlipper implements Feature {
         }
     }
 
-    private void handleOutbid(BazaarMonitor.BazaarMonitorItem book) {
-        for (Task task : taskList) {
-            if (!book.book.equals(task.getBook())) continue;
-
-            if (book.isSellOrder && (task.getBookState() == Task.BookState.REPLACE_SELL || task.getBookState() == Task.BookState.SELL_ORDER)) {
-                debug("[BazaarFlipper] handleOutbid: sell order for " + task.getBook() + " was outbid/undercut, queuing state change");
-                listOfTaskToChange.add(task);
-            } else if (!book.isSellOrder) {
-                debug("[BazaarFlipper] handleOutbid: buy order for " + task.getBook() + " was outbid, queuing state change");
-                listOfTaskToChange.add(task);
-            }
-        }
-    }
 
     private void selfRecoveryTrigger() {
         if (!attemptedToClaim) {

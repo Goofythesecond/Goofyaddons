@@ -34,6 +34,10 @@ public class Task {
     private Book book;
     private int amountToOrder;
     private BookState bookState;
+    public boolean inBuyOrder = false;
+    public boolean inSellOffer = false;
+    public double priceUnit = 0;
+    public long timeCounter = 0;
     // book location will be represented in integars, 0 = Inventory, 1 = EnderChest, 2 = EnderChestPage2
     public List<BookList> bookList = new ArrayList<>();
 
