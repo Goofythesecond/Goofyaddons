@@ -608,6 +608,11 @@ public class BazaarFlipper implements Feature {
                     store_Counter = slot.size();
 
                     if (inventoryScanner.getEmptyContainerSlots() == 0) {
+                        if (usingSecondPage) {
+                            stop();
+                            debug("[FAILSAFE ALERT] CLEAR YOUR ENDERCHEST");
+                            return;
+                        }
                         debug("[BazaarFlipper] STORE: first page container full, switching to second page");
                         usingSecondPage = true;
                         store_Counter = -1;
