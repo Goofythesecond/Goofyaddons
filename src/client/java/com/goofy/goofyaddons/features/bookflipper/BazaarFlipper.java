@@ -45,6 +45,10 @@ public class BazaarFlipper implements Feature {
         SELL,
         REPLACE_SELL,
 
+        WAITING_FOR_ITEM_CONFIRMATION,
+        WAITING_FOR_ORDER_CONFIRMATION,
+        WAITING_FOR_SELL_ORDER_CONFIRMATION,
+
     }
 
     private State state = State.START;
@@ -72,6 +76,7 @@ public class BazaarFlipper implements Feature {
     private int anvil_Counter_2 = -1;
     private int combine_Counter = -1;
     private boolean overFlowProt = false;
+    private boolean instaBuyProt = false;
     private int tick;
 
     private Task activeTask = null;
@@ -124,6 +129,9 @@ public class BazaarFlipper implements Feature {
         bazaarMonitor.stop();
         bazaarMonitor.reset();
         ChatUtils.clientMessage("BazaarFlipper: Stopped");
+        instaBuyProt = false;
+        overFlowProt = false;
+
     }
 
     @Override
@@ -335,6 +343,7 @@ public class BazaarFlipper implements Feature {
 
                 // here we loop through every task and pick based of priority
                 for (Task task : taskList) {
+                    if (instaBuyProt && task.getBookState().equals(Task.BookState.SELECTED)) continue;
                     if (!isStartUpCheckCompleted && task.getBookState().equals(Task.BookState.OUTBID) || inventoryIsFull && task.getBookState().equals(Task.BookState.OUTBID))
                         continue;
                     Integer rank = STATE_PRIORITY.get(task.getBookState());
@@ -408,6 +417,13 @@ public class BazaarFlipper implements Feature {
 
                 if (containerNameCheck(activeTask.getBook().name())) clock.start(randomizer());
                 if (containerNameCheck(activeTask.getBook().name()) && inventoryScanner.isMenuLoaded(35) && clock.shouldFire()) {
+                    if (activeTask.instaBuy) {
+                        if (inventoryScanner.getEmptyInventorySlots() > activeTask.getAmountToOrder()) {
+                            instaBuyProt = true;
+                            state = State.IDLE;
+                            return;
+                        }
+                    }
                     InventoryUtils.clickSlot(activeTask.instaBuy ? 10 : 15, false);
                 }
 
@@ -1070,6 +1086,7 @@ public class BazaarFlipper implements Feature {
         clock.stop();
         if (lastState == State.IDLE) {
             inventoryIsFull = false;
+            instaBuyProt = false;
         }
         lastState = state;
 
