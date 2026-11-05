@@ -11,6 +11,7 @@ import com.goofy.goofyaddons.features.bookflipper.helper.FlipItem;
 import com.goofy.goofyaddons.features.bookflipper.helper.Task;
 import com.goofy.goofyaddons.utils.ChatUtils;
 import com.goofy.goofyaddons.utils.Clock;
+import com.goofy.goofyaddons.utils.Debugger;
 import com.goofy.goofyaddons.utils.InventoryScanner;
 import com.goofy.goofyaddons.utils.InventoryUtils;
 import com.goofy.goofyaddons.utils.ScoreboardUtils;
@@ -1291,7 +1292,7 @@ public class BazaarFlipper implements Feature {
     }
 
     private void debug(String string) {
-        ChatUtils.debugMessage(string);
+        Debugger.write(name(), string);
     }
 
     private void initSelfRecovery() {

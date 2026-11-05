@@ -5,7 +5,7 @@ import com.goofy.goofyaddons.event.ChatHook;
 import com.goofy.goofyaddons.failsafes.FailsafeManager;
 import com.goofy.goofyaddons.features.FeatureManager;
 import com.goofy.goofyaddons.keybinds.GoofyKeybinds;
-import com.goofy.goofyaddons.render.gui.GoofyGui;
+import com.goofy.goofyaddons.utils.Debugger;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
@@ -18,6 +18,7 @@ public class GoofyAddonsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        Debugger.load();
         GoofyConfig.load();
         ChatHook.register();
         GoofyKeybinds.register();
