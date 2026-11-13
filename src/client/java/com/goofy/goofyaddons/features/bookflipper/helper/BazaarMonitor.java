@@ -1,6 +1,6 @@
 package com.goofy.goofyaddons.features.bookflipper.helper;
 
-import com.goofy.goofyaddons.utils.ChatUtils;
+import com.goofy.goofyaddons.utils.Debugger;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -28,10 +28,10 @@ public class BazaarMonitor {
 
     public void add(Task task, double price, boolean isSellOrder) {
         if (task.inBuyOrder && task.inSellOffer) {
-            ChatUtils.debugMessage("[BazaarMonitor] Book was rejected " + task.getBook().name() + " " + price + "sellorder=" + isSellOrder);
+            Debugger.write("BazaarFlipper", "[BazaarMonitor] Book was rejected " + task.getBook().name() + " " + price + "sellorder=" + isSellOrder);
             return;
         }
-        ChatUtils.debugMessage("[BazaarMonitor] Book was added " + task.getBook().name() + " " + price + "sellorder=" + isSellOrder);
+        Debugger.write("BazaarFlipper", "[BazaarMonitor] Book was added " + task.getBook().name() + " " + price + "sellorder=" + isSellOrder);
         task.timeCounter = System.currentTimeMillis();
         task.priceUnit = price;
         if (isSellOrder) {
@@ -130,9 +130,9 @@ public class BazaarMonitor {
     }
 
     private void handleOutbid(Task task) {
-        ChatUtils.debugMessage("[BazaarMonitor] outbidding book " + task.getBook().name());
+        Debugger.write("BazaarFlipper", "[BazaarMonitor] outbidding book " + task.getBook().name());
         if (!task.inSellOffer && !task.inBuyOrder) {
-            ChatUtils.debugMessage("[BazaarMonitor] book is already outbid " + task.getBook().name());
+            Debugger.write("BazaarFlipper", "[BazaarMonitor] book is already outbid " + task.getBook().name());
             return;
         }
         task.inSellOffer = false;

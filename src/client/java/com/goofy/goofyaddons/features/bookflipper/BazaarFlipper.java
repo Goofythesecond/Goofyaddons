@@ -1297,8 +1297,8 @@ public class BazaarFlipper implements Feature {
 
     private void initSelfRecovery() {
         stop();
-        ChatUtils.debugMessage("Failsafe Alert: Macro had been attempting to claim for more than 1 minute.");
-        ChatUtils.debugMessage("Failsafe Alert: Attempting self repair via restart.");
+        debug("Failsafe Alert: Macro had been attempting to claim for more than 1 minute.");
+        debug("Failsafe Alert: Attempting self repair via restart.");
         start();
     }
 
