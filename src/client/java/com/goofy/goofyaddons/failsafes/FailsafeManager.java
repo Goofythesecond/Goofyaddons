@@ -11,7 +11,7 @@ public class FailsafeManager {
     public static FailsafeManager INSTANCE = new FailsafeManager();
 
     private FailsafeManager() {
-        failsafes.add(new ScheduledReboot());
+        failsafes.add(new ServerRebootFailsafe());
     }
 
     public void onTick() {
